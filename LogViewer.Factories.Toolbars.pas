@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -53,18 +53,18 @@ type
     ): TToolButton; overload;
 
     function CreateToolButton(
-            AParent     : TToolBar;
+      AParent           : TToolBar;
       const AActionName : string;
-            AStyle      : TToolButtonStyle = tbsButton;
-            APopupMenu  : TPopupMenu = nil
+      AStyle            : TToolButtonStyle = tbsButton;
+      APopupMenu        : TPopupMenu = nil
     ): TToolButton; overload;
 
   public
     procedure AfterConstruction; override;
 
     constructor Create(
-      AActions  : ILogViewerActions;
-      AMenus    : ILogViewerMenus
+      AActions : ILogViewerActions;
+      AMenus   : ILogViewerMenus
     );
 
     function CreateMainToolbar(
@@ -185,6 +185,7 @@ begin
   TB.AllowTextButtons := True;
   CreateToolButton(TB, 'actToggleAlwaysOnTop');
   CreateToolButton(TB, 'actToggleFullScreen');
+  CreateToolButton(TB, 'actStart');
   CreateToolButton(TB, 'actStop');
   CreateToolButton(TB, 'actClearMessages');
   CreateToolButton(TB);
@@ -199,7 +200,7 @@ begin
   CreateToolButton(TB);
   CreateToolButton(TB, 'actValue', tbsTextButton);
   CreateToolButton(TB, 'actStrings', tbsTextButton);
-  CreateToolButton(TB, 'actObject', tbsTextButton);
+  CreateToolButton(TB, 'actComponent', tbsTextButton);
 //  CreateToolButton(TB, 'actBitmap', tbsTextButton);
   //CreateToolButton(TB, 'actMemory', tbsTextButton);
   //CreateToolButton(TB, 'actHeapInfo', tbsTextButton);
@@ -209,14 +210,13 @@ begin
 //  CreateToolButton(TB);
 //  CreateToolButton(TB, 'actFilterMessages');
 //  CreateToolButton(TB);
-//  CreateToolButton(TB, 'actZeroMQChannel');
-//  CreateToolButton(TB, 'actWinIPCChannel');
-//  CreateToolButton(TB, 'actODSChannel');
-//  CreateToolButton(TB);
 //  CreateToolButton(TB, 'actSetFocusToFilter');
 //  CreateToolButton(TB);
   CreateToolButton(TB, 'actCollapseAll', tbsTextButton);
   CreateToolButton(TB, 'actExpandAll', tbsTextButton);
+  CreateToolButton(TB);
+  CreateToolButton(TB, 'actAutoScrollMessages', tbsTextButton);
+  Result := TB;
 end;
 {$ENDREGION}
 

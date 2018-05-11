@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -23,9 +23,13 @@ interface
 uses
   System.Classes,
 
+  Spring,
+
   DDuce.FormSettings,
 
-  LogViewer.MessageList.Settings;
+  LogViewer.MessageList.Settings, LogViewer.Watches.Settings,
+  LogViewer.ComPort.Settings, LogViewer.WinODS.Settings,
+  LogViewer.WinIPC.Settings;
 
 type
   TLogViewerSettings = class(TPersistent)
@@ -35,16 +39,38 @@ type
     FLeftPanelWidth      : Integer;
     FRightPanelWidth     : Integer;
     FMessageListSettings : TMessageListSettings;
+    FWinODSSettings      : TWinODSSettings;
+    FWinIPCSettings      : TWinIPCSettings;
+    FComPortSettings     : TComPortSettings;
+    FWatchSettings       : TWatchSettings;
+    FOnChanged           : Event<TNotifyEvent>;
+
+    function GetOnChanged: IEvent<TNotifyEvent>;
+
+    procedure FormSettingsChanged(Sender: TObject);
 
   public
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
 
+    procedure Changed;
     procedure Load;
     procedure Save;
 
     property FormSettings: TFormSettings
       read FFormSettings;
+
+    property WinODSSettings: TWinODSSettings
+      read FWinODSSettings;
+
+    property WinIPCSettings: TWinIPCSettings
+      read FWinIPCSettings;
+
+    property ComPortSettings: TComPortSettings
+      read FComPortSettings;
+
+    property WatchSettings: TWatchSettings
+      read FWatchSettings;
 
     property MessageListSettings: TMessageListSettings
       read FMessageListSettings;
@@ -55,6 +81,9 @@ type
 
     property RightPanelWidth: Integer
       read FRightPanelWidth write FRightPanelWidth;
+
+    property OnChanged: IEvent<TNotifyEvent>
+      read GetOnChanged;
   end;
 
 implementation
@@ -68,24 +97,53 @@ uses
 procedure TLogViewerSettings.AfterConstruction;
 begin
   inherited AfterConstruction;
-  FFileName := 'settings.json';
-  FFormSettings := TFormSettings.Create;
+  FFileName            := 'settings.json';
+  FFormSettings        := TFormSettings.Create;
+  FFormSettings.OnChanged.Add(FormSettingsChanged);
   FMessageListSettings := TMessageListSettings.Create;
+  FWinODSSettings      := TWinODSSettings.Create;
+  FWinIPCSettings      := TWinIPCSettings.Create;
+  FComPortSettings     := TComPortSettings.Create;
+  FWatchSettings       := TWatchSettings.Create;
 end;
 
 procedure TLogViewerSettings.BeforeDestruction;
 begin
   FreeAndNil(FFormSettings);
   FreeAndNil(FMessageListSettings);
+  FreeAndNil(FWinODSSettings);
+  FreeAndNil(FWinIPCSettings);
+  FreeAndNil(FComPortSettings);
+  FreeAndNil(FWatchSettings);
   inherited BeforeDestruction;
+end;
+{$ENDREGION}
+
+{$REGION 'property access methods'}
+function TLogViewerSettings.GetOnChanged: IEvent<TNotifyEvent>;
+begin
+  Result := FOnChanged;
+end;
+{$ENDREGION}
+
+{$REGION 'event dispatch methods'}
+procedure TLogViewerSettings.Changed;
+begin
+  FOnChanged.Invoke(Self);
+end;
+{$ENDREGION}
+
+{$REGION 'event handlers'}
+procedure TLogViewerSettings.FormSettingsChanged(Sender: TObject);
+begin
+  Changed;
 end;
 {$ENDREGION}
 
 {$REGION 'public methods'}
 procedure TLogViewerSettings.Load;
 var
-  JDO : TJsonDataValueHelper;
-  JO  : TJsonObject;
+  JO : TJsonObject;
 begin
   if FileExists(FFileName) then
   begin
@@ -103,7 +161,7 @@ end;
 
 procedure TLogViewerSettings.Save;
 var
-  JO  : TJsonObject;
+  JO : TJsonObject;
 begin
   JO := TJsonObject.Create;
   try

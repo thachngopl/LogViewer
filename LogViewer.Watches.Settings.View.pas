@@ -14,7 +14,7 @@
   limitations under the License.
 }
 
-unit LogViewer.WinIPC.Settings.View;
+unit LogViewer.Watches.Settings.View;
 
 interface
 
@@ -23,23 +23,27 @@ uses
   System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
 
-  LogViewer.WinIPC.Settings;
+  LogViewer.Watches.Settings;
 
 type
-  TfrmWinIPCSettings = class(TForm)
-    lblWindowHandleName : TLabel;
-    edtWindowHandleName : TEdit;
+  TfrmWatchSettings = class(TForm)
+    chkOnlyTrackChanges : TCheckBox;
+
+    procedure chkOnlyTrackChangesClick(Sender: TObject);
 
   private
-    FSettings : TWinIPCSettings;
+    FSettings : TWatchSettings;
+
+  protected
+    procedure UpdateActions; override;
 
   public
     constructor Create(
       AOwner    : TComponent;
-      ASettings : TWinIPCSettings
+      ASettings : TWatchSettings
     ); reintroduce;
-    procedure BeforeDestruction; override;
 
+    procedure BeforeDestruction; override;
   end;
 
 implementation
@@ -47,17 +51,30 @@ implementation
 {$R *.dfm}
 
 {$REGION 'construction and destruction'}
-procedure TfrmWinIPCSettings.BeforeDestruction;
+constructor TfrmWatchSettings.Create(AOwner: TComponent;
+  ASettings: TWatchSettings);
+begin
+  inherited Create(AOwner);
+  FSettings := ASettings;
+end;
+
+procedure TfrmWatchSettings.UpdateActions;
+begin
+  inherited UpdateActions;
+  chkOnlyTrackChanges.Checked := FSettings.OnlyTrackChanges;
+end;
+
+procedure TfrmWatchSettings.BeforeDestruction;
 begin
   FSettings := nil;
   inherited BeforeDestruction;
 end;
+{$ENDREGION}
 
-constructor TfrmWinIPCSettings.Create(AOwner: TComponent;
-  ASettings: TWinIPCSettings);
+{$REGION 'event handlers'}
+procedure TfrmWatchSettings.chkOnlyTrackChangesClick(Sender: TObject);
 begin
-  inherited Create(AOwner);
-  FSettings := ASettings;
+  FSettings.OnlyTrackChanges := chkOnlyTrackChanges.Checked;
 end;
 {$ENDREGION}
 

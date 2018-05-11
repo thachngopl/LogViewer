@@ -14,7 +14,7 @@
   limitations under the License.
 }
 
-unit LogViewer.ZeroMQ.Settings;
+unit LogViewer.Watches.Settings;
 
 interface
 
@@ -24,69 +24,80 @@ uses
   Spring;
 
 type
-  TZeroMQSettings = class(TPersistent)
+  TWatchSettings = class(TPersistent)
   private
-    FOnChanged : Event<TNotifyEvent>;
-    FAddress   : string;
+    FOnChanged        : Event<TNotifyEvent>;
+    FOnlyTrackChanges : Boolean;
 
   protected
     {$REGION 'property access methods'}
     function GetOnChanged: IEvent<TNotifyEvent>;
-    function GetAddress: string;
-    procedure SetAddress(const Value: string);
+    function GetOnlyTrackChanges: Boolean;
+    procedure SetOnlyTrackChanges(const Value: Boolean);
     {$ENDREGION}
 
     procedure Changed;
 
   public
-    procedure Assign(Source: TPersistent); override;
+    procedure AfterConstruction; override;
 
-    property Address: string
-      read GetAddress write SetAddress;
+    procedure Assign(Source: TPersistent); override;
 
     property OnChanged: IEvent<TNotifyEvent>
       read GetOnChanged;
+
+    property OnlyTrackChanges: Boolean
+      read GetOnlyTrackChanges write SetOnlyTrackChanges;
+
   end;
 
 implementation
 
+{$REGION 'construction and destruction'}
+procedure TWatchSettings.AfterConstruction;
+begin
+  inherited AfterConstruction;
+
+end;
+{$ENDREGION}
+
 {$REGION 'property access methods'}
-function TZeroMQSettings.GetOnChanged: IEvent<TNotifyEvent>;
+function TWatchSettings.GetOnChanged: IEvent<TNotifyEvent>;
 begin
   Result := FOnChanged;
 end;
 
-function TZeroMQSettings.GetAddress: string;
+function TWatchSettings.GetOnlyTrackChanges: Boolean;
 begin
-  Result := FAddress;
+  Result := FOnlyTrackChanges;
 end;
 
-procedure TZeroMQSettings.SetAddress(const Value: string);
+procedure TWatchSettings.SetOnlyTrackChanges(const Value: Boolean);
 begin
-  if Value <> Address then
+  if Value <> OnlyTrackChanges then
   begin
-    FAddress := Value;
+    FOnlyTrackChanges := Value;
     Changed;
   end;
 end;
 {$ENDREGION}
 
-{$REGION 'protected methods'}
-procedure TZeroMQSettings.Changed;
+{$REGION 'event dispatch methods'}
+procedure TWatchSettings.Changed;
 begin
   FOnChanged.Invoke(Self);
 end;
 {$ENDREGION}
 
 {$REGION 'public methods'}
-procedure TZeroMQSettings.Assign(Source: TPersistent);
+procedure TWatchSettings.Assign(Source: TPersistent);
 var
-  LSettings: TZeroMQSettings;
+  LSettings: TWatchSettings;
 begin
-  if Source is TZeroMQSettings then
+  if Source is TWatchSettings then
   begin
-    LSettings := TZeroMQSettings(Source);
-    FAddress  := LSettings.Address;
+    LSettings := TWatchSettings(Source);
+    OnlyTrackChanges := LSettings.OnlyTrackChanges;
   end
   else
     inherited Assign(Source);

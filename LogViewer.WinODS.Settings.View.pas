@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -21,19 +21,48 @@ interface
 uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls;
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
+
+  LogViewer.WinODS.Settings;
 
 type
   TfrmWinODSSettings = class(TForm)
-    lblProcess: TLabel;
-    lblProcessId: TLabel;
-    edtProcess: TButtonedEdit;
+    {$REGION 'designer controls'}
+    lblProcess   : TLabel;
+    lblProcessId : TLabel;
+    edtProcess   : TButtonedEdit;
+    edtProcessId : TButtonedEdit;
+    {$ENDREGION}
+
   private
+    FSettings : TWinODSSettings;
+
   public
+    constructor Create(
+      AOwner    : TComponent;
+      ASettings : TWinODSSettings
+    ); reintroduce;
+
+    procedure BeforeDestruction; override;
   end;
 
 implementation
 
 {$R *.dfm}
+
+{$REGION 'construction and destruction'}
+constructor TfrmWinODSSettings.Create(AOwner: TComponent;
+  ASettings: TWinODSSettings);
+begin
+  inherited Create(AOwner);
+  FSettings := ASettings;
+end;
+
+procedure TfrmWinODSSettings.BeforeDestruction;
+begin
+  FSettings := nil;
+  inherited BeforeDestruction;
+end;
+{$ENDREGION}
 
 end.

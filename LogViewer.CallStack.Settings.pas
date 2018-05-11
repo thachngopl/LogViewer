@@ -14,7 +14,7 @@
   limitations under the License.
 }
 
-unit LogViewer.WinIPC.Settings;
+unit LogViewer.CallStack.Settings;
 
 interface
 
@@ -24,16 +24,18 @@ uses
   Spring;
 
 type
-  TWinIPCSettings = class(TPersistent)
+  TCallStackSettings = class(TPersistent)
   private
     FOnChanged : Event<TNotifyEvent>;
 
+  protected
     function GetOnChanged: IEvent<TNotifyEvent>;
 
-  protected
     procedure Changed;
 
   public
+    procedure AfterConstruction; override;
+
     procedure Assign(Source: TPersistent); override;
 
     property OnChanged: IEvent<TNotifyEvent>
@@ -42,33 +44,42 @@ type
 
 implementation
 
+{$REGION 'construction and destruction'}
+procedure TCallStackSettings.AfterConstruction;
+begin
+  inherited;
+
+end;
+{$ENDREGION}
+
 {$REGION 'property access methods'}
-function TWinIPCSettings.GetOnChanged: IEvent<TNotifyEvent>;
+function TCallStackSettings.GetOnChanged: IEvent<TNotifyEvent>;
 begin
   Result := FOnChanged;
 end;
 {$ENDREGION}
 
-{$REGION 'protected methods'}
-procedure TWinIPCSettings.Changed;
+{$REGION 'event dispatch methods'}
+procedure TCallStackSettings.Changed;
 begin
   FOnChanged.Invoke(Self);
 end;
 {$ENDREGION}
 
 {$REGION 'public methods'}
-procedure TWinIPCSettings.Assign(Source: TPersistent);
-//var
-//  LSettings: TWinIPCSettings;
+procedure TCallStackSettings.Assign(Source: TPersistent);
+var
+  LSettings: TCallStackSettings;
 begin
-//  if Source is TWinIPCSettings then
-//  begin
-//    LSettings := TWinIPCSettings(Source);
-//
-//
-//  end
-//  else
-//    inherited Assign(Source);
+  if Source is TCallStackSettings then
+  begin
+    LSettings := TCallStackSettings(Source);
+
+  end
+  else
+    inherited Assign(Source);
 end;
+
 {$ENDREGION}
+
 end.

@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -38,10 +38,15 @@ uses
 
   LogViewer.Interfaces;
 
+const
+  ZQM_DEFAULT_ADDRESS = 'tcp://localhost:5555';
+//  tcp://GANYMEDES:5555
+//  tcp://EUROPA:5555
+
 type
   TZeroMQChannelReceiver = class(TInterfacedObject, IChannelReceiver)
   private class var
-     FCounter : Integer;
+    FCounter : Integer;
   private
     FOnReceiveMessage : Event<TReceiveMessageEvent>;
     FZMQStream        : TStringStream;
@@ -51,15 +56,16 @@ type
     FTimer            : TTimer;
     FEnabled          : Boolean;
     FName             : string;
+    FAddress          : string;
 
     function GetEnabled: Boolean;
     procedure SetEnabled(const Value: Boolean);
-
-    function ConnectSubscriber: Boolean;
-    procedure CloseSubscriber;
     function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
     function GetName: string;
     procedure SetName(const Value: string);
+
+    function ConnectSubscriber: Boolean;
+    procedure CloseSubscriber;
 
   protected
     procedure DoReceiveMessage(AStream : TStream);
@@ -67,7 +73,10 @@ type
     procedure FTimerTimer(Sender: TObject);
 
   public
-    constructor Create(const AName: string);
+    constructor Create(
+      const AName    : string = '';
+      const AAddress : string = ''
+    );
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
 
@@ -87,7 +96,8 @@ uses
   System.SysUtils;
 
 {$REGION 'construction and destruction'}
-constructor TZeroMQChannelReceiver.Create(const AName: string);
+constructor TZeroMQChannelReceiver.Create(const AName: string;
+  const AAddress: string);
 begin
   inherited Create;
   if AName = '' then
@@ -96,23 +106,28 @@ begin
   end
   else
     FName := AName;
+  FAddress := AAddress;
 end;
 
 procedure TZeroMQChannelReceiver.AfterConstruction;
 begin
-  Inc(FCounter);
-  FTimer := TTimer.Create(nil);
-  FTimer.OnTimer := FTimerTimer;
-  FZMQ     := TZeroMQ.Create;
-  FEnabled := ConnectSubscriber;
-
   inherited AfterConstruction;
+  FOnReceiveMessage.UseFreeNotification := False;
+  Inc(FCounter);
+  if FAddress = '' then
+    FAddress := ZQM_DEFAULT_ADDRESS;
+  FTimer         := TTimer.Create(nil);
+  FTimer.OnTimer := FTimerTimer;
+  FZMQ           := TZeroMQ.Create;
+  FEnabled       := ConnectSubscriber;
+  FZMQStream     := TStringStream.Create;
 end;
 
 procedure TZeroMQChannelReceiver.BeforeDestruction;
 begin
   CloseSubscriber;
   FTimer.Free;
+  FZMQStream.Free;
   inherited BeforeDestruction;
 end;
 {$ENDREGION}
@@ -121,16 +136,6 @@ end;
 function TZeroMQChannelReceiver.GetEnabled: Boolean;
 begin
   Result := FEnabled;
-end;
-
-function TZeroMQChannelReceiver.GetName: string;
-begin
-  Result := FName;
-end;
-
-procedure TZeroMQChannelReceiver.SetName(const Value: string);
-begin
-  FName := Value;
 end;
 
 procedure TZeroMQChannelReceiver.SetEnabled(const Value: Boolean);
@@ -146,6 +151,16 @@ begin
   end;
 end;
 
+function TZeroMQChannelReceiver.GetName: string;
+begin
+  Result := FName;
+end;
+
+procedure TZeroMQChannelReceiver.SetName(const Value: string);
+begin
+  FName := Value;
+end;
+
 function TZeroMQChannelReceiver.GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
 begin
   Result := FOnReceiveMessage;
@@ -155,7 +170,7 @@ end;
 {$REGION 'event dispatch methods'}
 procedure TZeroMQChannelReceiver.DoReceiveMessage(AStream: TStream);
 begin
-//
+  FOnReceiveMessage.Invoke(Self, Self as IChannelReceiver, AStream);
 end;
 {$ENDREGION}
 
@@ -186,10 +201,9 @@ var
   N : Integer;
 begin
   FSubscriber := FZMQ.Start(ZMQSocket.Subscriber);
-//  N := FSubscriber.Connect('tcp://GANYMEDES:5555');
-//  N := FSubscriber.Connect('tcp://localhost:5555');
-  //N := FSubscriber.Connect('tcp://EUROPA:5555');
-
+  N := FSubscriber.Connect(FAddress);
+  // '' as Filter means all ?
+  //FSubscriber.Subscribe(Name); // required!!
   FSubscriber.Subscribe(''); // required!!
   FPoll := FZMQ.Poller;
   FPoll.RegisterPair(FSubscriber, [PollEvent.PollIn],

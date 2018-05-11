@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 unit LogViewer.Commands;
 
+{ Handles execution of user commands on the active view. }
+
 interface
 
 uses
@@ -27,6 +29,11 @@ type
   TLogViewerCommands = class(TInterfaceBase, ILogViewerCommands) // no refcount
   private
     FManager: ILogViewerManager;
+
+    {$REGION 'property access methods'}
+    function GetActiveView: ILogViewer;
+    function GetReceiver: IChannelReceiver;
+    {$ENDREGION}
 
   protected
     procedure ClearMessages;
@@ -40,6 +47,12 @@ type
   public
     constructor Create(AManager: ILogViewerManager);
     procedure BeforeDestruction; override;
+
+    property ActiveView: ILogViewer
+      read GetActiveView;
+
+    property Receiver: IChannelReceiver
+      read GetReceiver;
 
   end;
 
@@ -57,40 +70,76 @@ begin
 end;
 {$ENDREGION}
 
+{$REGION 'property access methods'}
+function TLogViewerCommands.GetActiveView: ILogViewer;
+begin
+  Result := FManager.ActiveView;
+end;
+
+function TLogViewerCommands.GetReceiver: IChannelReceiver;
+begin
+  if Assigned(ActiveView) then
+    Result := ActiveView.Receiver
+  else
+    Result := nil;
+end;
+{$ENDREGION}
+
 {$REGION 'protected methods'}
 procedure TLogViewerCommands.ClearMessages;
 begin
-  FManager.ActiveView.Clear;
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.Clear;
+  end;
 end;
 
 procedure TLogViewerCommands.CollapseAll;
 begin
-//
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.CollapseAll;
+  end;
 end;
 
 procedure TLogViewerCommands.ExpandAll;
 begin
-//
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.ExpandAll;
+  end;
 end;
 
 procedure TLogViewerCommands.GotoFirst;
 begin
-  FManager.ActiveView.GotoFirst;
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.GotoFirst;
+  end;
 end;
 
 procedure TLogViewerCommands.GotoLast;
 begin
-  FManager.ActiveView.GotoLast;
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.GotoLast;
+  end;
 end;
 
 procedure TLogViewerCommands.Start;
 begin
-  FManager.ActiveView.Receiver.Enabled := True;
+  if Assigned(Receiver) then
+  begin
+    Receiver.Enabled := True;
+  end;
 end;
 
 procedure TLogViewerCommands.Stop;
 begin
-  FManager.ActiveView.Receiver.Enabled := False;
+  if Assigned(Receiver) then
+  begin
+    Receiver.Enabled := False;
+  end;
 end;
 {$ENDREGION}
 

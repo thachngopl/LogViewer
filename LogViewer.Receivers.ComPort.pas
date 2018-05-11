@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2016 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ type
   TComPortChannelReceiver = class(TInterfacedObject, IChannelReceiver)
   private class var
     FCounter : Integer;
+
   private
     FEnabled          : Boolean;
     FOnReceiveMessage : Event<TReceiveMessageEvent>;
@@ -50,23 +51,28 @@ type
     FBuffer           : TMemoryStream;
     FName             : string;
 
+    function GetSettings: TComPortSettings;
+    function GetName: string;
+    procedure SetName(const Value: string);
+
     procedure FSerialPortStatus(
       Sender      : TObject;
       Reason      : THookSerialReason;
       const Value : string
     );
     procedure FPollTimerTimer(Sender: TObject);
-    function GetSettings: TComPortSettings;
-    function GetName: string;
-    procedure SetName(const Value: string);
 
   protected
+    {$REGION 'property access methods'}
     function GetEnabled: Boolean;
     procedure SetEnabled(const Value: Boolean);
     function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
+    {$ENDREGION}
+
+    function ToString: string;
 
     procedure DoReceiveMessage(AStream : TStream);
-    procedure DoStringReceived(const AString: RawByteString);
+    procedure DoStringReceived(const AString: AnsiString);
 
     procedure FSettingsChanged(Sender: TObject);
 
@@ -96,7 +102,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.StrUtils,
+  System.SysUtils, System.AnsiStrings,
 
   DDuce.Logger.Interfaces;
 
@@ -105,6 +111,7 @@ constructor TComPortChannelReceiver.Create(const AName : string;
   ASettings: TComPortSettings);
 begin
   inherited Create;
+  Guard.CheckNotNull(ASettings, 'ASettings');
   if AName = '' then
   begin
     FName := Copy(ClassName, 2, Length(ClassName)) + IntToStr(FCounter);
@@ -118,6 +125,7 @@ end;
 procedure TComPortChannelReceiver.AfterConstruction;
 begin
   inherited AfterConstruction;
+  FOnReceiveMessage.UseFreeNotification := False;
   Inc(FCounter);
   FBuffer := TMemoryStream.Create;
   FPollTimer := TTimer.Create(nil);
@@ -197,10 +205,10 @@ end;
 {$REGION 'event dispatch methods'}
 procedure TComPortChannelReceiver.DoReceiveMessage(AStream: TStream);
 begin
-  FOnReceiveMessage.Invoke(Self, AStream);
+  FOnReceiveMessage.Invoke(Self, Self as IChannelReceiver, AStream);
 end;
 
-procedure TComPortChannelReceiver.DoStringReceived(const AString: RawByteString);
+procedure TComPortChannelReceiver.DoStringReceived(const AString: AnsiString);
 const
   LZero : Integer = 0;
 var
@@ -216,9 +224,8 @@ begin
   end
   else
     LMsgType := Integer(lmtText);
-
-  LString := AString;
-  LTextSize := Length(LString);
+  LString    := UTF8String(AString);
+  LTextSize  := Length(LString);
   LTimeStamp := Now;
   FBuffer.Seek(0, soFromBeginning);
   FBuffer.WriteBuffer(LMsgType, SizeOf(Integer));
@@ -233,12 +240,12 @@ end;
 {$REGION 'event handlers'}
 procedure TComPortChannelReceiver.FPollTimerTimer(Sender: TObject);
 var
-  SS : TStringStream;
+  S : AnsiString;
 begin
   while FSerialPort.WaitingDataEx <> 0 do
   begin
-    //DoStringReceived(FSerialPort.RecvPacket(0));
-    DoStringReceived(FSerialPort.RecvTerminated(10, #10));
+    S := Trim(FSerialPort.RecvTerminated(10, #10));
+    DoStringReceived(S);
   end;
 end;
 
@@ -267,8 +274,6 @@ begin
 end;
 
 procedure TComPortChannelReceiver.FSettingsChanged(Sender: TObject);
-var
-  B : Boolean;
 begin
   if FSerialPort.Device <> FSettings.Port then
   begin
@@ -286,6 +291,13 @@ begin
     False,
     True
   );
+end;
+{$ENDREGION}
+
+{$REGION 'protected methods'}
+function TComPortChannelReceiver.ToString: string;
+begin
+//
 end;
 {$ENDREGION}
 

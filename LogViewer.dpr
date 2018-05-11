@@ -1,9 +1,10 @@
 program LogViewer;
 
+
+
 uses
   Forms,
   VirtualTrees,
-  LogViewer.MainForm.old in 'LogViewer.MainForm.old.pas' {frmMainOld},
   DDuce.Factories in '..\..\libraries\dduce\Source\Modules\DDuce.Factories.pas',
   DDuce.FormSettings in '..\..\libraries\dduce\Source\Modules\DDuce.FormSettings.pas',
   DDuce.Editor.ActionList.Templates in '..\..\libraries\dduce\Source\Modules\Editor\DDuce.Editor.ActionList.Templates.pas',
@@ -88,13 +89,11 @@ uses
   DDuce.Logger.Channels.WinIPC in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Channels.WinIPC.pas',
   DDuce.Logger.Channels.ZeroMQ in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Channels.ZeroMQ.pas',
   DDuce.Logger in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.pas',
-  DDuce.Logger.Channels in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Channels.pas',
   DDuce.Logger.Interfaces in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Interfaces.pas',
   DDuce.Logger.Factories in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Factories.pas',
   LogViewer.Watches.Data in 'LogViewer.Watches.Data.pas',
   DDuce.WinIPC.Server in '..\..\libraries\dduce\Source\DDuce.WinIPC.Server.pas',
   DDuce.Logger.Base in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Base.pas',
-  DDuce.Logger.Channels.WinODS in '..\..\libraries\dduce\Source\Modules\Logger\DDuce.Logger.Channels.WinODS.pas',
   JsonDataObjects in '..\..\libraries\JsonDataObjects\Source\JsonDataObjects.pas',
   LogViewer.Settings in 'LogViewer.Settings.pas',
   LogViewer.MessageList.View in 'LogViewer.MessageList.View.pas' {frmMessageList},
@@ -107,18 +106,7 @@ uses
   DDuce.Editor.Filter.Settings in '..\..\libraries\dduce\Source\Modules\Editor\DDuce.Editor.Filter.Settings.pas',
   uCustomImageDrawHook in 'uCustomImageDrawHook.pas',
   LogViewer.Resources in 'LogViewer.Resources.pas',
-  DDuce.ObjectInspector in '..\..\libraries\dduce\Source\Modules\ObjectInspector\DDuce.ObjectInspector.pas' {frmComponentInspector},
-  zBase in '..\..\libraries\dduce\Source\Dependencies\zControls\zBase.pas',
-  zCanvasStack in '..\..\libraries\dduce\Source\Dependencies\zControls\zCanvasStack.pas',
-  zCollectionEditor in '..\..\libraries\dduce\Source\Dependencies\zControls\zCollectionEditor.pas' {zCollectionEditorDialog},
-  zControlsReg in '..\..\libraries\dduce\Source\Dependencies\zControls\zControlsReg.pas',
-  zGraphicDialog in '..\..\libraries\dduce\Source\Dependencies\zControls\zGraphicDialog.pas' {GraphicDialog},
-  zObjInspDialogs in '..\..\libraries\dduce\Source\Dependencies\zControls\zObjInspDialogs.pas',
-  zObjInspector in '..\..\libraries\dduce\Source\Dependencies\zControls\zObjInspector.pas',
-  zObjInspList in '..\..\libraries\dduce\Source\Dependencies\zControls\zObjInspList.pas',
-  zRecList in '..\..\libraries\dduce\Source\Dependencies\zControls\zRecList.pas',
-  zStringsDialog in '..\..\libraries\dduce\Source\Dependencies\zControls\zStringsDialog.pas' {StringsDialog},
-  zUtils in '..\..\libraries\dduce\Source\Dependencies\zControls\zUtils.pas',
+  DDuce.ObjectInspector.zObjectInspector in '..\..\libraries\dduce\Source\Modules\ObjectInspector\DDuce.ObjectInspector.zObjectInspector.pas' {frmComponentInspectorzObjectInspector},
   LogViewer.MainForm in 'LogViewer.MainForm.pas' {frmMain},
   LogViewer.Watches.View in 'LogViewer.Watches.View.pas' {frmWatchesView},
   LogViewer.CallStack.View in 'LogViewer.CallStack.View.pas' {frmCallStackView},
@@ -182,14 +170,32 @@ uses
   LogViewer.ZeroMQ.Settings.View in 'LogViewer.ZeroMQ.Settings.View.pas' {frmZeroMQSettings},
   LogViewer.WinODS.Settings in 'LogViewer.WinODS.Settings.pas',
   LogViewer.ZeroMQ.Settings in 'LogViewer.ZeroMQ.Settings.pas',
-  LogViewer.WinIPC.Settings in 'LogViewer.WinIPC.Settings.pas';
+  LogViewer.WinIPC.Settings in 'LogViewer.WinIPC.Settings.pas',
+  LogViewer.Settings.Dialog.ConfigNode in 'LogViewer.Settings.Dialog.ConfigNode.pas',
+  LogViewer.Watches.Settings in 'LogViewer.Watches.Settings.pas',
+  LogViewer.CallStack.Settings in 'LogViewer.CallStack.Settings.pas',
+  LogViewer.Watches.Settings.View in 'LogViewer.Watches.Settings.View.pas' {frmWatchSettings},
+  LogViewer.MessageList.LogNode in 'LogViewer.MessageList.LogNode.pas',
+  NativeXml in '..\..\libraries\dduce\Source\Dependencies\NativeXml\NativeXml.pas',
+  NativeXmlCodepages in '..\..\libraries\dduce\Source\Dependencies\NativeXml\NativeXmlCodepages.pas',
+  NativeXmlNodes in '..\..\libraries\dduce\Source\Dependencies\NativeXml\NativeXmlNodes.pas',
+  NativeXmlObjectStorage in '..\..\libraries\dduce\Source\Dependencies\NativeXml\NativeXmlObjectStorage.pas',
+  sdDebug in '..\..\libraries\dduce\Source\Dependencies\NativeXml\sdDebug.pas',
+  sdStreams in '..\..\libraries\dduce\Source\Dependencies\NativeXml\sdStreams.pas',
+  sdStringTable in '..\..\libraries\dduce\Source\Dependencies\NativeXml\sdStringTable.pas',
+  DDuce.Factories.VirtualTrees in '..\..\libraries\dduce\Source\Factories\DDuce.Factories.VirtualTrees.pas',
+  DDuce.Factories.zObjInspector in '..\..\libraries\dduce\Source\Factories\DDuce.Factories.zObjInspector.pas',
+  DDuce.Factories.GridView in '..\..\libraries\dduce\Source\Factories\DDuce.Factories.GridView.pas',
+  Spring.Collections.Trees in '..\..\libraries\spring4d\Source\Base\Collections\Spring.Collections.Trees.pas',
+  LogViewer.Dashboard.View in 'LogViewer.Dashboard.View.pas' {frmDashboard},
+  LogViewer.Receivers.Base in 'LogViewer.Receivers.Base.pas';
 
 {$R *.res}
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   Application.Title := 'Log viewer';
   Application.Initialize;
-//  Application.CreateForm(TfrmMainOld, frmMainOld);
   Application.CreateForm(TfrmMain, frmMain);
   Application.Run;
 end.

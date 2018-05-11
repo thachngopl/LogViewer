@@ -1,5 +1,5 @@
 ﻿{
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -229,7 +229,7 @@ type
       Kind          : TVTImageKind;
       Column        : TColumnIndex;
       var Ghosted   : Boolean;
-      var ImageIndex: LongInt
+      var ImageIndex: TImageIndex
     );
     procedure FLogTreeViewGetText(
       Sender       : TBaseVirtualTree;
@@ -311,7 +311,6 @@ type
   private
     FSettings       : TLogViewerSettings;
     FLogTreeView    : TVirtualStringTree;
-    FActiveMessages : TLogMessageTypes;
     FMessageCount   : Integer;
     FCurrentMsg     : TLogMessage;
     FLastParent     : PVirtualNode;
@@ -405,7 +404,8 @@ uses
 
   Spring,
 
-  DDuce.Factories, DDuce.Components.Factories, DDuce.Editor.Factories,
+  DDuce.Factories, DDuce.Factories.VirtualTrees, DDuce.Components.Factories,
+  DDuce.Editor.Factories,
   DDuce.Logger, DDuce.ScopedReference, DDuce.ObjectInspector, DDuce.Reflect,
 
   LogViewer.Resources, LogViewer.Receivers.WinODS;
@@ -421,7 +421,6 @@ begin
   CreateWatches;
   CreateWatchInspectors;
   CreateCallStackViewer;
-  FActiveMessages := ALL_MESSAGES;
   CreateIPCServer;
   CreateZMQSubscriber;
 //  FReceiver := TWinODSReceiver.Create;
@@ -448,7 +447,7 @@ end;
 procedure TfrmMainOld.CreateCallStackViewer;
 begin
   FCallStack    := TCollections.CreateObjectList<TCallStackData>;
-  FVSTCallStack := TFactories.CreateVirtualStringTree(Self, pnlCallStack);
+  FVSTCallStack := TVirtualStringTreeFactory.CreateGrid(Self, pnlCallStack);
   FTVPCallStack := TFactories.CreateTreeViewPresenter(
     Self,
     FVSTCallStack,
@@ -649,13 +648,11 @@ end;
 
 procedure TfrmMainOld.actSelectAllExecute(Sender: TObject);
 begin
-  FActiveMessages := ALL_MESSAGES;
-  UpdateMessageDisplay;
+    UpdateMessageDisplay;
 end;
 
 procedure TfrmMainOld.actSelectNoneExecute(Sender: TObject);
 begin
-  FActiveMessages := [];
   UpdateMessageDisplay;
 end;
 
@@ -1003,7 +1000,7 @@ end;
 
 procedure TfrmMainOld.FLogTreeViewGetImageIndex(Sender: TBaseVirtualTree;
   Node: PVirtualNode; Kind: TVTImageKind; Column: TColumnIndex;
-  var Ghosted: Boolean; var ImageIndex: LongInt);
+  var Ghosted: Boolean; var ImageIndex: TImageIndex);
 var
   ND: PNodeData;
 begin
@@ -1205,7 +1202,7 @@ var
   B  : Boolean;
 begin
   ND := Sender.GetNodeData(Node);
-  B := ND.MsgType in FActiveMessages;
+//  B := ND.MsgType in FActiveMessages;
   if TitleFilter <> '' then
     B := B and ContainsText(ND.Title, TitleFilter);
   Sender.IsVisible[Node] := B;
@@ -1219,10 +1216,6 @@ begin
   A := Sender as TAction;
   if AToggle then
     A.Checked := not A.Checked;
-  if A.Checked then
-    Include(FActiveMessages, AMessageType)
-  else
-    Exclude(FActiveMessages, AMessageType);
   UpdateMessageDisplay;
 end;
 
@@ -1412,21 +1405,7 @@ procedure TfrmMainOld.UpdateActions;
 var
   B: Boolean;
 begin
-  actBitmap.Checked        := lmtBitmap in FActiveMessages;
-  actCallStack.Checked     := lmtCallStack in FActiveMessages;
-  actCheckPoint.Checked    := lmtCheckpoint in FActiveMessages;
-  actConditional.Checked   := lmtConditional in FActiveMessages;
-  actToggleInfo.Checked    := lmtInfo in FActiveMessages;
-  actToggleWarning.Checked := lmtWarning in FActiveMessages;
-  actValue.Checked         := lmtValue in FActiveMessages;
-  actError.Checked         := lmtError in FActiveMessages;
-  actMethodTraces.Checked  := lmtEnterMethod in FActiveMessages;
-  actException.Checked     := lmtException in FActiveMessages;
-  actObject.Checked        := lmtObject in FActiveMessages;
-  actHeapInfo.Checked      := lmtHeapInfo in FActiveMessages;
-  actCustomData.Checked    := lmtCustomData in FActiveMessages;
-  actStrings.Checked       := lmtStrings in FActiveMessages;
-  actMemory.Checked        := lmtMemory in FActiveMessages;
+
   B := not actStop.Checked;
   actBitmap.Enabled        := B;
   actCallStack.Enabled     := B;
@@ -1443,8 +1422,7 @@ begin
   actCustomData.Enabled    := B;
   actStrings.Enabled       := B;
   actMemory.Enabled        := B;
-  actSelectAll.Enabled  := not (FActiveMessages = ALL_MESSAGES);
-  actSelectNone.Enabled := not (FActiveMessages = []);
+  
   actToggleAlwaysOnTop.Checked := FormStyle = fsStayOnTop;
 
   actFilterMessages.Enabled := not chkAutoFilter.Checked and (TitleFilter <> '');

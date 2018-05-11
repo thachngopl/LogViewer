@@ -10,10 +10,12 @@ object frmMain: TfrmMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  KeyPreview = True
   OldCreateOrder = False
-  Position = poScreenCenter
+  Position = poDesigned
   ScreenSnap = True
   ShowHint = True
+  OnShortCut = FormShortCut
   PixelsPerInch = 96
   TextHeight = 13
   object sbrMain: TStatusBar
@@ -32,6 +34,7 @@ object frmMain: TfrmMain
     OnButtonAddClick = ctMainButtonAddClick
     OnButtonCloseTabClick = ctMainButtonCloseTabClick
     OnNeedDragImageControl = ctMainNeedDragImageControl
+    OnTabDragDrop = ctMainTabDragDrop
     ActiveTabIndex = -1
     Options.Display.CloseButton.Offsets.Vertical = 6
     Options.Display.CloseButton.Offsets.Horizontal = 2

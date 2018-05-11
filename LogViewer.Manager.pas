@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -18,17 +18,18 @@ unit LogViewer.Manager;
 
 interface
 
-{ Handles all application events. }
+{ Handles all application modules. }
 
 uses
-  System.SysUtils, System.Classes, System.Actions,
-  Vcl.ExtCtrls, System.ImageList, Vcl.ImgList, Vcl.Controls, Vcl.ActnList,
+  System.SysUtils, System.Classes, System.Actions, System.ImageList,
+  Vcl.ExtCtrls, Vcl.ImgList, Vcl.Controls, Vcl.ActnList, Vcl.Menus,
 
   Spring, Spring.Collections,
 
   DDuce.Logger.Interfaces,
 
-  LogViewer.Interfaces, LogViewer.Settings;
+  LogViewer.Interfaces, LogViewer.Settings, LogViewer.Events,
+  LogViewer.Commands;
 
 {
   TODO:
@@ -44,88 +45,112 @@ type
                                   ILogViewerManager
   )
     {$REGION 'designer controls'}
-    aclMain              : TActionList;
-    actBitmap            : TAction;
-    actCallStack         : TAction;
-    actCheckPoint        : TAction;
-    actClearMessages     : TAction;
-    actCollapseAll       : TAction;
-    actConditional       : TAction;
-    actCustomData        : TAction;
-    actError             : TAction;
-    actException         : TAction;
-    actExpandAll         : TAction;
-    actFilterMessages    : TAction;
-    actHeapInfo          : TAction;
-    actInfo              : TAction;
-    actMemory            : TAction;
-    actMethodTraces      : TAction;
-    actObject            : TAction;
-    actOpen              : TAction;
-    actSave              : TAction;
-    actSelectAll         : TAction;
-    actSelectNone        : TAction;
-    actSetFocusToFilter  : TAction;
-    actStop              : TAction;
-    actStrings           : TAction;
-    actToggleAlwaysOnTop : TAction;
-    actToggleFullscreen  : TAction;
-    actValue             : TAction;
-    actWarning           : TAction;
-    imlMain              : TImageList;
-    imlMessageTypes      : TImageList;
-    tmrPoll              : TTimer;
-    actGotoFirst: TAction;
-    actGotoLast: TAction;
+    aclMain               : TActionList;
+    actAutoScrollMessages : TAction;
+    actBitmap             : TAction;
+    actCallStack          : TAction;
+    actCheckPoint         : TAction;
+    actClearMessages      : TAction;
+    actCollapseAll        : TAction;
+    actConditional        : TAction;
+    actCustomData         : TAction;
+    actError              : TAction;
+    actException          : TAction;
+    actExpandAll          : TAction;
+    actFilterMessages     : TAction;
+    actGotoFirst          : TAction;
+    actGotoLast           : TAction;
+    actHeapInfo           : TAction;
+    actInfo               : TAction;
+    actMemory             : TAction;
+    actMethodTraces       : TAction;
+    actComponent: TAction;
+    actOpen               : TAction;
+    actSave               : TAction;
+    actSelectAll          : TAction;
+    actSelectNone         : TAction;
+    actSetFocusToFilter   : TAction;
+    actSettings           : TAction;
+    actStop               : TAction;
+    actStrings            : TAction;
+    actToggleAlwaysOnTop  : TAction;
+    actToggleFullscreen   : TAction;
+    actValue              : TAction;
+    actWarning            : TAction;
+    imlMain               : TImageList;
+    imlMessageTypes       : TImageList;
+    tmrPoll               : TTimer;
+    ppmLogTreeViewer: TPopupMenu;
+    ppmMessageTypes: TPopupMenu;
+    actMessageTypesMenu: TAction;
+    actStart: TAction;
     {$ENDREGION}
 
     {$REGION 'action handlers'}
+    procedure actAutoScrollMessagesExecute(Sender: TObject);
+    procedure actBitmapExecute(Sender: TObject);
+    procedure actCallStackExecute(Sender: TObject);
+    procedure actCheckPointExecute(Sender: TObject);
     procedure actClearMessagesExecute(Sender: TObject);
-    procedure actToggleAlwaysOnTopExecute(Sender: TObject);
+    procedure actCollapseAllExecute(Sender: TObject);
+    procedure actConditionalExecute(Sender: TObject);
+    procedure actCustomDataExecute(Sender: TObject);
+    procedure actErrorExecute(Sender: TObject);
+    procedure actExceptionExecute(Sender: TObject);
+    procedure actExpandAllExecute(Sender: TObject);
+    procedure actFilterMessagesExecute(Sender: TObject);
+    procedure actGotoFirstExecute(Sender: TObject);
+    procedure actGotoLastExecute(Sender: TObject);
+    procedure actHeapInfoExecute(Sender: TObject);
+    procedure actInfoExecute(Sender: TObject);
+    procedure actMemoryExecute(Sender: TObject);
+    procedure actMethodTracesExecute(Sender: TObject);
+    procedure actComponentExecute(Sender: TObject);
     procedure actOpenExecute(Sender: TObject);
     procedure actSaveExecute(Sender: TObject);
     procedure actSelectAllExecute(Sender: TObject);
     procedure actSelectNoneExecute(Sender: TObject);
-    procedure actInfoExecute(Sender: TObject);
+    procedure actSetFocusToFilterExecute(Sender: TObject);
+    procedure actSettingsExecute(Sender: TObject);
+    procedure actStopExecute(Sender: TObject);
+    procedure actStringsExecute(Sender: TObject);
+    procedure actToggleAlwaysOnTopExecute(Sender: TObject);
+    procedure actToggleFullscreenExecute(Sender: TObject);
     procedure actValueExecute(Sender: TObject);
     procedure actWarningExecute(Sender: TObject);
-    procedure actConditionalExecute(Sender: TObject);
-    procedure actErrorExecute(Sender: TObject);
-    procedure actCheckPointExecute(Sender: TObject);
-    procedure actStringsExecute(Sender: TObject);
-    procedure actCallStackExecute(Sender: TObject);
-    procedure actObjectExecute(Sender: TObject);
-    procedure actExceptionExecute(Sender: TObject);
-    procedure actBitmapExecute(Sender: TObject);
-    procedure actHeapInfoExecute(Sender: TObject);
-    procedure actMemoryExecute(Sender: TObject);
-    procedure actCustomDataExecute(Sender: TObject);
-    procedure actMethodTracesExecute(Sender: TObject);
-    procedure actStopExecute(Sender: TObject);
-    procedure actFilterMessagesExecute(Sender: TObject);
-    procedure actSetFocusToFilterExecute(Sender: TObject);
-    procedure actToggleFullscreenExecute(Sender: TObject);
-    procedure actCollapseAllExecute(Sender: TObject);
-    procedure actExpandAllExecute(Sender: TObject);
-    procedure actGotoFirstExecute(Sender: TObject);
-    procedure actGotoLastExecute(Sender: TObject);
+    procedure actStartExecute(Sender: TObject);
     {$ENDREGION}
 
   private
-    FSettings            : TLogViewerSettings;
-    FEvents              : ILogViewerEvents;
-    FCommands            : ILogViewerCommands;
-    FActiveView          : ILogViewerMessagesView;
-    FViewList            : IList<ILogViewerMessagesView>;
-    FReceivers           : IList<IChannelReceiver>;
-    FVisibleMessageTypes : TLogMessageTypes;
+    FSettings   : TLogViewerSettings;
+    FEvents     : TLogViewerEvents;
+    FCommands   : TLogViewerCommands;
+    FActiveView : ILogViewer;
+    FViewList   : IList<ILogViewer>;
+    FReceivers  : IList<IChannelReceiver>;
+
+    function AddMenuItem(
+      AParent : TMenuItem;
+      AAction : TBasicAction = nil
+    ): TMenuItem; overload;
+    function AddMenuItem(
+      AParent : TMenuItem;
+      AMenu   : TMenu
+    ): TMenuItem; overload;
+
+    procedure BuildLogTreeViewerPopupMenu;
+    procedure BuildMessageTypesPopupMenu;
 
   protected
+    function GetMessageTypesPopupMenu: TPopupMenu;
+    function GetLogTreeViewerPopupMenu: TPopupMenu;
     function GetCommands: ILogViewerCommands;
     function GetEvents: ILogViewerEvents;
-    function GetVisibleMessageTypes: TLogMessageTypes;
     function GetSettings: TLogViewerSettings;
-    function GetViews: IList<ILogViewerMessagesView>;
+    function GetViews: IList<ILogViewer>;
+    function GetReceivers: IList<IChannelReceiver>;
+
+    procedure ActiveViewChanged;
 
     procedure UpdateVisibleMessageTypes(
       const AMessageType : TLogMessageType;
@@ -151,16 +176,23 @@ type
 
     property Menus: ILogViewerMenus
       read GetMenus;
+
+    property LogTreeViewerPopupMenu: TPopupMenu
+      read GetLogTreeViewerPopupMenu;
+
+    property MessageTypesPopupMenu: TPopupMenu
+      read GetMessageTypesPopupMenu;
     {$ENDREGION}
 
     {$REGION 'ILogViewerManager'}
     function GetActions: ILogViewerActions;
-    function GetActiveView: ILogViewerMessagesView;
-    procedure SetActiveView(const Value: ILogViewerMessagesView);
+    function GetActiveView: ILogViewer;
+    procedure SetActiveView(const Value: ILogViewer);
 
-    procedure AddView(AView: ILogViewerMessagesView);
+    procedure AddView(ALogViewer: ILogViewer);
+    procedure AddReceiver(AReceiver: IChannelReceiver);
 
-    property ActiveView: ILogViewerMessagesView
+    property ActiveView: ILogViewer
       read GetActiveView write SetActiveView;
 
     property Actions: ILogViewerActions
@@ -180,13 +212,17 @@ type
     property Settings: TLogViewerSettings
       read GetSettings;
 
-    property VisibleMessageTypes: TLogMessageTypes
-      read GetVisibleMessageTypes;
-
-    property Views: IList<ILogViewerMessagesView>
+    property Views: IList<ILogViewer>
       read GetViews;
 
+    property Receivers: IList<IChannelReceiver>
+      read GetReceivers;
+
   public
+    constructor Create(
+      AOwner    : TComponent;
+      ASettings : TLogViewerSettings
+    );
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
 
@@ -197,7 +233,7 @@ implementation
 uses
   Vcl.Forms,
 
-  LogViewer.Events, LogViewer.Commands, LogViewer.Resources;
+  LogViewer.Resources, LogViewer.Settings.Dialog, LogViewer.MessageList.Settings;
 
 {$R *.dfm}
 
@@ -205,22 +241,36 @@ uses
 procedure TdmManager.AfterConstruction;
 begin
   inherited AfterConstruction;
-  FSettings := TLogViewerSettings.Create;
-  FEvents   := TLogViewerEvents.Create(Self);
-  FCommands := TLogViewerCommands.Create(Self);
-  FVisibleMessageTypes := ALL_MESSAGES;
+  FEvents    := TLogViewerEvents.Create(Self);
+  FCommands  := TLogViewerCommands.Create(Self);
   FReceivers := TCollections.CreateInterfaceList<IChannelReceiver>;
-  FViewList  := TCollections.CreateInterfaceList<ILogViewerMessagesView>;
+  FViewList  := TCollections.CreateInterfaceList<ILogViewer>;
+  BuildMessageTypesPopupMenu;
+  BuildLogTreeViewerPopupMenu;
 end;
 
 procedure TdmManager.BeforeDestruction;
 begin
-  FSettings.Free;
+  FreeAndNil(FCommands);
+  FreeAndNil(FEvents);
+  FSettings := nil;
   inherited BeforeDestruction;
+end;
+
+constructor TdmManager.Create(AOwner: TComponent; ASettings: TLogViewerSettings);
+begin
+  inherited Create(AOwner);
+  FSettings := ASettings;
 end;
 {$ENDREGION}
 
 {$REGION 'action handlers'}
+procedure TdmManager.actAutoScrollMessagesExecute(Sender: TObject);
+begin
+  FSettings.MessageListSettings.AutoScrollMessages :=
+    not FSettings.MessageListSettings.AutoScrollMessages;
+end;
+
 procedure TdmManager.actBitmapExecute(Sender: TObject);
 begin
   UpdateVisibleMessageTypes(lmtBitmap, Sender);
@@ -302,9 +352,9 @@ begin
   UpdateVisibleMessageTypes(lmtLeaveMethod, Sender, False);
 end;
 
-procedure TdmManager.actObjectExecute(Sender: TObject);
+procedure TdmManager.actComponentExecute(Sender: TObject);
 begin
-  UpdateVisibleMessageTypes(lmtObject, Sender);
+  UpdateVisibleMessageTypes(lmtComponent, Sender);
 end;
 
 procedure TdmManager.actOpenExecute(Sender: TObject);
@@ -332,12 +382,30 @@ begin
 //
 end;
 
+procedure TdmManager.actSettingsExecute(Sender: TObject);
+var
+  F : TfrmLogViewerSettings;
+begin
+  F := TfrmLogViewerSettings.Create(Self, FSettings);
+  try
+    F.ShowModal;
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TdmManager.actStartExecute(Sender: TObject);
+begin
+  Commands.Start;
+  actStop.Enabled := True;
+  actStart.Enabled := False;
+end;
+
 procedure TdmManager.actStopExecute(Sender: TObject);
 begin
-  if actStop.Checked then
-    Commands.Stop
-  else
-    Commands.Start;
+  Commands.Stop;
+  actStop.Enabled := False;
+  actStart.Enabled := True;
 end;
 
 procedure TdmManager.actStringsExecute(Sender: TObject);
@@ -394,7 +462,7 @@ begin
   Result := Self as ILogViewerActions;
 end;
 
-function TdmManager.GetActiveView: ILogViewerMessagesView;
+function TdmManager.GetActiveView: ILogViewer;
 begin
   Result := FActiveView;
 end;
@@ -409,13 +477,13 @@ begin
   Result := FEvents;
 end;
 
-procedure TdmManager.SetActiveView(const Value: ILogViewerMessagesView);
+procedure TdmManager.SetActiveView(const Value: ILogViewer);
 begin
   if Assigned(Value) and (Value <> FActiveView) then
   begin
     FActiveView := Value;
-    //Events.DoActiveViewChange;
-    //ActiveViewChanged;
+//    Events.DoActiveViewChange;
+    ActiveViewChanged;
   end;
 end;
 
@@ -436,9 +504,24 @@ begin
   end;
 end;
 
+function TdmManager.GetLogTreeViewerPopupMenu: TPopupMenu;
+begin
+  Result := ppmLogTreeViewer
+end;
+
 function TdmManager.GetMenus: ILogViewerMenus;
 begin
   Result := Self as ILogViewerMenus;
+end;
+
+function TdmManager.GetMessageTypesPopupMenu: TPopupMenu;
+begin
+  Result := ppmMessageTypes;
+end;
+
+function TdmManager.GetReceivers: IList<IChannelReceiver>;
+begin
+  Result := FReceivers as IList<IChannelReceiver>;
 end;
 
 function TdmManager.GetSettings: TLogViewerSettings;
@@ -446,92 +529,214 @@ begin
   Result := FSettings;
 end;
 
-function TdmManager.GetViews: IList<ILogViewerMessagesView>;
+function TdmManager.GetViews: IList<ILogViewer>;
 begin
   Result := FViewList;
 end;
+{$ENDREGION}
 
-function TdmManager.GetVisibleMessageTypes: TLogMessageTypes;
+{$REGION 'private methods'}
+function TdmManager.AddMenuItem(AParent: TMenuItem;
+  AAction: TBasicAction): TMenuItem;
+var
+  MI: TMenuItem;
 begin
-  Result := FVisibleMessageTypes;
+  if not Assigned(AAction) then
+  begin
+    MI := TMenuItem.Create(AParent.Owner);
+    MI.Caption := ('-');
+    AParent.Add(MI);
+    Result := nil;
+  end
+  else
+  begin
+    MI := TMenuItem.Create(AParent.Owner);
+    MI.Action := AAction;
+    if (AAction is TAction) and (TAction(AAction).GroupIndex > 0) then
+    begin
+      MI.RadioItem := True;
+    end;
+    AParent.Add(MI);
+    Result := MI;
+  end;
+end;
+
+function TdmManager.AddMenuItem(AParent: TMenuItem; AMenu: TMenu): TMenuItem;
+var
+  MI  : TMenuItem;
+  M   : TMenuItem;
+  SM  : TMenuItem;
+  SMI : TMenuItem;
+  I   : Integer;
+begin
+  MI := TMenuItem.Create(AMenu);
+  MI.Action := AMenu.Items.Action;
+  AParent.Add(MI);
+  for M in AMenu.Items do
+  begin
+    SMI := AddMenuItem(MI, M.Action);
+    // add submenu(s)
+    if M.Count > 0 then
+    begin
+      for I := 0 to M.Count - 1 do
+      begin
+        SM := M.Items[I];
+        AddMenuItem(SMI, SM.Action);
+      end;
+    end;
+  end;
+  MI.Enabled := True;
+  Result := MI;
+end;
+
+procedure TdmManager.BuildLogTreeViewerPopupMenu;
+var
+  MI: TMenuItem;
+begin
+  MI := LogTreeViewerPopupMenu.Items;
+  MI.Clear;
+  AddMenuItem(MI, actAutoScrollMessages);
+  AddMenuItem(MI, actClearMessages);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actCollapseAll);
+  AddMenuItem(MI, actExpandAll);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actGotoFirst);
+  AddMenuItem(MI, actGotoLast);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actStart);
+  AddMenuItem(MI, actStop);
+  AddMenuItem(MI);
+  AddMenuItem(MI, MessageTypesPopupMenu);
+end;
+
+procedure TdmManager.BuildMessageTypesPopupMenu;
+var
+  MI: TMenuItem;
+begin
+  actMessageTypesMenu.DisableIfNoHandler := False;
+  MI.Clear;
+  MI := MessageTypesPopupMenu.Items;
+  MI.Action := actMessageTypesMenu;
+  AddMenuItem(MI, actInfo);
+  AddMenuItem(MI, actWarning);
+  AddMenuItem(MI, actError);
+  AddMenuItem(MI, actException);
+  AddMenuItem(MI, actConditional);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actValue);
+  AddMenuItem(MI, actBitmap);
+  AddMenuItem(MI, actStrings);
+  AddMenuItem(MI, actCustomData);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actMethodTraces);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actHeapInfo);
+  AddMenuItem(MI, actCallStack);
+  AddMenuItem(MI, actMemory);
+  AddMenuItem(MI);
+  AddMenuItem(MI, actCheckPoint);
 end;
 {$ENDREGION}
 
 {$REGION 'protected methods'}
-procedure TdmManager.AddView(AView: ILogViewerMessagesView);
+procedure TdmManager.ActiveViewChanged;
 begin
-  FViewList.Add(AView);
-  if not FReceivers.Contains(AView.Receiver) then
+  UpdateActions;
+end;
+
+procedure TdmManager.AddReceiver(AReceiver: IChannelReceiver);
+begin
+  Guard.CheckNotNull(AReceiver, 'AReceiver');
+  FReceivers.Add(AReceiver);
+  Events.DoAddReceiver(AReceiver);
+end;
+
+procedure TdmManager.AddView(ALogViewer: ILogViewer);
+begin
+  Guard.CheckNotNull(ALogViewer, 'ALogViewer');
+  FViewList.Add(ALogViewer);
+  if not FReceivers.Contains(ALogViewer.Receiver) then
   begin
-    FReceivers.Add(AView.Receiver);
+    FReceivers.Add(ALogViewer.Receiver);
   end;
-  FActiveView := AView;
+  Events.DoAddLogViewer(ALogViewer);
+  FActiveView := ALogViewer;
 end;
 
 { Gets called from the active messages view. }
 
 procedure TdmManager.UpdateActions;
 var
-  B: Boolean;
+  B   : Boolean;
+  MLS : TMessageListSettings;
 begin
-  actBitmap.Checked        := lmtBitmap in FVisibleMessageTypes;
-  actCallStack.Checked     := lmtCallStack in FVisibleMessageTypes;
-  actCheckPoint.Checked    := lmtCheckpoint in FVisibleMessageTypes;
-  actConditional.Checked   := lmtConditional in FVisibleMessageTypes;
-  actInfo.Checked          := lmtInfo in FVisibleMessageTypes;
-  actWarning.Checked       := lmtWarning in FVisibleMessageTypes;
-  actValue.Checked         := lmtValue in FVisibleMessageTypes;
-  actError.Checked         := lmtError in FVisibleMessageTypes;
-  actMethodTraces.Checked  := lmtEnterMethod in FVisibleMessageTypes;
-  actException.Checked     := lmtException in FVisibleMessageTypes;
-  actObject.Checked        := lmtObject in FVisibleMessageTypes;
-  actHeapInfo.Checked      := lmtHeapInfo in FVisibleMessageTypes;
-  actCustomData.Checked    := lmtCustomData in FVisibleMessageTypes;
-  actStrings.Checked       := lmtStrings in FVisibleMessageTypes;
-  actMemory.Checked        := lmtMemory in FVisibleMessageTypes;
-  B                        := not actStop.Checked;
-  actBitmap.Enabled        := B;
-  actCallStack.Enabled     := B;
-  actCheckPoint.Enabled    := B;
-  actConditional.Enabled   := B;
-  actInfo.Enabled          := B;
-  actWarning.Enabled       := B;
-  actValue.Enabled         := B;
-  actError.Enabled         := B;
-  actMethodTraces.Enabled  := B;
-  actException.Enabled     := B;
-  actObject.Enabled        := B;
-  actHeapInfo.Enabled      := B;
-  actCustomData.Enabled    := B;
-  actStrings.Enabled       := B;
-  actMemory.Enabled        := B;
-  actSelectAll.Enabled  := not (FVisibleMessageTypes = ALL_MESSAGES);
-  actSelectNone.Enabled := not (FVisibleMessageTypes = []);
-  //actToggleAlwaysOnTop.Checked := FormStyle = fsStayOnTop;
-
-  //actFilterMessages.Enabled := not chkAutoFilter.Checked and (TitleFilter <> '');
-  //sbrMain.SimpleText := Format('%d messages received.', [FMessageCount]);
+  MLS := Settings.MessageListSettings;
+  actBitmap.Checked       := lmtBitmap in MLS.VisibleMessageTypes;
+  actCallStack.Checked    := lmtCallStack in MLS.VisibleMessageTypes;
+  actCheckPoint.Checked   := lmtCheckpoint in MLS.VisibleMessageTypes;
+  actConditional.Checked  := lmtConditional in MLS.VisibleMessageTypes;
+  actInfo.Checked         := lmtInfo in MLS.VisibleMessageTypes;
+  actWarning.Checked      := lmtWarning in MLS.VisibleMessageTypes;
+  actValue.Checked        := lmtValue in MLS.VisibleMessageTypes;
+  actError.Checked        := lmtError in MLS.VisibleMessageTypes;
+  actMethodTraces.Checked := lmtEnterMethod in MLS.VisibleMessageTypes;
+  actException.Checked    := lmtException in MLS.VisibleMessageTypes;
+  actComponent.Checked    := lmtComponent in MLS.VisibleMessageTypes;
+  actHeapInfo.Checked     := lmtHeapInfo in MLS.VisibleMessageTypes;
+  actCustomData.Checked   := lmtCustomData in MLS.VisibleMessageTypes;
+  actStrings.Checked      := lmtStrings in MLS.VisibleMessageTypes;
+  actMemory.Checked       := lmtMemory in MLS.VisibleMessageTypes;
+  actAutoScrollMessages.Checked
+    := FSettings.MessageListSettings.AutoScrollMessages;
+  B := Assigned(ActiveView);
+  actStart.Enabled              := B and not ActiveView.Receiver.Enabled;
+  actStop.Enabled               := B and not actStart.Enabled;
+  actBitmap.Enabled             := B;
+  actCallStack.Enabled          := B;
+  actCheckPoint.Enabled         := B;
+  actConditional.Enabled        := B;
+  actInfo.Enabled               := B;
+  actWarning.Enabled            := B;
+  actValue.Enabled              := B;
+  actError.Enabled              := B;
+  actMethodTraces.Enabled       := B;
+  actException.Enabled          := B;
+  actComponent.Enabled          := B;
+  actHeapInfo.Enabled           := B;
+  actCustomData.Enabled         := B;
+  actStrings.Enabled            := B;
+  actMemory.Enabled             := B;
+  actCollapseAll.Enabled        := B;
+  actExpandAll.Enabled          := B;
+  actAutoScrollMessages.Enabled := B;
+  actClearMessages.Enabled      := B;
+  actSelectAll.Enabled          := MLS.VisibleMessageTypes <> ALL_MESSAGES;
+  actSelectNone.Enabled         := MLS.VisibleMessageTypes <> [];
+  actToggleAlwaysOnTop.Checked := Settings.FormSettings.FormStyle = fsStayOnTop;
+  actToggleFullscreen.Checked := Settings.FormSettings.WindowState = wsMaximized;
 end;
 
 procedure TdmManager.UpdateVisibleMessageTypes(
   const AMessageType: TLogMessageType; const Sender: TObject;
   const AToggle: Boolean);
 var
-  A : TAction;
+  A   : TAction;
+  MLS : TMessageListSettings;
 begin
+  MLS := Settings.MessageListSettings;
   if Assigned(FActiveView) then
   begin
     A := Sender as TAction;
     if AToggle then
       A.Checked := not A.Checked;
     if A.Checked then
-      Include(FVisibleMessageTypes, AMessageType)
+      MLS.VisibleMessageTypes := MLS.VisibleMessageTypes + [AMessageType]
     else
-      Exclude(FVisibleMessageTypes, AMessageType);
+      MLS.VisibleMessageTypes := MLS.VisibleMessageTypes - [AMessageType];
     FActiveView.UpdateView;
   end;
 end;
-
 {$ENDREGION}
 
 end.

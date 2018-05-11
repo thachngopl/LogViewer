@@ -1,8 +1,8 @@
 object frmComPortSettings: TfrmComPortSettings
   Left = 0
   Top = 0
-  ClientHeight = 175
-  ClientWidth = 379
+  ClientHeight = 148
+  ClientWidth = 258
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,75 +13,75 @@ object frmComPortSettings: TfrmComPortSettings
   PixelsPerInch = 96
   TextHeight = 13
   object lblPort: TLabel
-    Left = 72
-    Top = 19
-    Width = 30
+    Left = 16
+    Top = 11
+    Width = 24
     Height = 13
-    Caption = 'lblPort'
+    Caption = 'Port:'
     FocusControl = cbxPort
   end
   object lblBaudRate: TLabel
-    Left = 52
-    Top = 46
-    Width = 57
+    Left = 16
+    Top = 38
+    Width = 48
     Height = 13
-    Caption = 'lblBaudRate'
+    Caption = 'Baudrate:'
     FocusControl = cbxBaudRate
   end
   object lblDataBits: TLabel
-    Left = 52
-    Top = 100
-    Width = 50
+    Left = 16
+    Top = 92
+    Width = 47
     Height = 13
-    Caption = 'lblDataBits'
+    Caption = 'Data bits:'
     FocusControl = cbxDataBits
   end
   object lblParity: TLabel
-    Left = 56
-    Top = 73
-    Width = 38
+    Left = 16
+    Top = 65
+    Width = 32
     Height = 13
-    Caption = 'lblParity'
+    Caption = 'Parity:'
     FocusControl = cbxParity
   end
   object lblStopBits: TLabel
-    Left = 53
-    Top = 127
-    Width = 49
-    Height = 18
-    Caption = 'lblStopBits'
+    Left = 16
+    Top = 119
+    Width = 46
+    Height = 13
+    Caption = 'Stop bits:'
   end
   object cbxPort: TComboBox
-    Left = 128
-    Top = 16
+    Left = 88
+    Top = 8
     Width = 145
     Height = 21
     TabOrder = 0
   end
   object cbxBaudRate: TComboBox
-    Left = 128
-    Top = 43
+    Left = 88
+    Top = 35
     Width = 145
     Height = 21
     TabOrder = 1
   end
   object cbxParity: TComboBox
-    Left = 128
-    Top = 70
+    Left = 88
+    Top = 62
     Width = 145
     Height = 21
     TabOrder = 2
   end
   object cbxDataBits: TComboBox
-    Left = 128
-    Top = 97
+    Left = 88
+    Top = 89
     Width = 145
     Height = 21
     TabOrder = 3
   end
   object cbxStopBits: TComboBox
-    Left = 128
-    Top = 124
+    Left = 88
+    Top = 116
     Width = 145
     Height = 21
     TabOrder = 4

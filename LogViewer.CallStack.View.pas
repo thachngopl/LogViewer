@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -29,10 +29,7 @@ uses
 
   Spring.Collections,
 
-  DSharp.Windows.TreeViewPresenter, DSharp.Windows.ColumnDefinitions,
-  DSharp.Core.DataTemplates,
-
-  LogViewer.CallStack.Data;
+  DSharp.Windows.TreeViewPresenter, DSharp.Windows.ColumnDefinitions;
 
 type
   TfrmCallStackView = class(TForm)
@@ -61,7 +58,7 @@ implementation
 {$R *.dfm}
 
 uses
-  DDuce.Factories;
+  DDuce.Factories, DDuce.Factories.VirtualTrees;
 
 {$REGION 'construction and destruction'}
 constructor TfrmCallStackView.Create(AOwner: TComponent; AData: IObjectList);
@@ -69,7 +66,8 @@ begin
   inherited Create(AOwner);
   FCallStack := AData;
   FCallStack.OnChanged.Add(FCallStackChanged);
-  FVSTCallStack := TFactories.CreateVirtualStringTree(Self, Self);
+  FVSTCallStack := TVirtualStringTreeFactory.CreateList(Self, Self);
+  FVSTCallStack.AlignWithMargins := False;
   FTVPCallStack := TFactories.CreateTreeViewPresenter(
     Self,
     FVSTCallStack,

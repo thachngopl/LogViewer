@@ -1,5 +1,5 @@
 {
-  Copyright (C) 2013-2017 Tim Sinaeve tim.sinaeve@gmail.com
+  Copyright (C) 2013-2018 Tim Sinaeve tim.sinaeve@gmail.com
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -25,14 +25,13 @@ uses
 
   synaser;
 
-const
-  DEFAULT_PARITY    = 'N';
-  DEFAULT_BAUDRATE  = 115200;
-  DEFAULT_DATA_BITS = 8;
-  DEFAULT_STOP_BITS = SB1;
-
 type
   TComPortSettings = class(TPersistent)
+  const
+    DEFAULT_PARITY    = 'N';
+    DEFAULT_BAUDRATE  = 115200;
+    DEFAULT_DATA_BITS = 8;
+    DEFAULT_STOP_BITS = SB1;
   private
     FBaudRate  : Integer;
     FDataBits  : Integer;
@@ -41,6 +40,7 @@ type
     FPort      : string;
     FOnChanged : Event<TNotifyEvent>;
 
+    {$REGION 'property access methods'}
     function GetBaudRate: Integer;
     procedure SetBaudRate(const Value: Integer);
     function GetDataBits: Integer;
@@ -52,13 +52,15 @@ type
     function GetParity: Char;
     procedure SetParity(const Value: Char);
     function GetOnChanged: IEvent<TNotifyEvent>;
+    {$ENDREGION}
 
   protected
     procedure Changed;
-    procedure Assign(Source: TPersistent); override;
 
   public
     procedure AfterConstruction; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     property BaudRate: Integer
       read GetBaudRate write SetBaudRate default DEFAULT_BAUDRATE;
@@ -171,6 +173,13 @@ begin
 end;
 {$ENDREGION}
 
+{$REGION 'event dispatch methods'}
+procedure TComPortSettings.Changed;
+begin
+  FOnChanged.Invoke(Self);
+end;
+{$ENDREGION}
+
 {$REGION 'protected methods'}
 procedure TComPortSettings.Assign(Source: TPersistent);
 var
@@ -187,11 +196,6 @@ begin
   end
   else
     inherited Assign(Source);
-end;
-
-procedure TComPortSettings.Changed;
-begin
-  FOnChanged.Invoke(Self);
 end;
 {$ENDREGION}
 
