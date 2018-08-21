@@ -16,14 +16,22 @@
 
 unit LogViewer.MainForm;
 
+{ Application main form. }
+
 interface
 
 uses
   Winapi.Windows, Winapi.Messages,
-  System.SysUtils, System.Variants, System.Classes,
+  System.SysUtils, System.Variants, System.Classes, System.Actions,
+  System.ImageList, System.Win.TaskbarCore,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ComCtrls, Vcl.ExtCtrls,
+  Vcl.Taskbar, Vcl.ActnList, Vcl.ImgList,
 
   ChromeTabs, ChromeTabsClasses, ChromeTabsTypes,
+
+  Spring,
+
+  DDuce.Settings.TextFormat,
 
   LogViewer.Interfaces,
   LogViewer.Factories, LogViewer.Manager, LogViewer.Settings,
@@ -33,9 +41,17 @@ uses
 
 type
   TfrmMain = class(TForm)
-    sbrMain       : TStatusBar;
-    ctMain        : TChromeTabs;
-    pnlMainClient : TPanel;
+    aclMain           : TActionList;
+    actCenterToScreen : TAction;
+    actShowVersion    : TAction;
+    ctMain            : TChromeTabs;
+    imlMain           : TImageList;
+    pnlMainClient     : TPanel;
+    sbrMain           : TStatusBar;
+    tskbrMain         : TTaskbar;
+
+    procedure actCenterToScreenExecute(Sender: TObject);
+    procedure actShowVersionExecute(Sender: TObject);
 
     procedure ctMainButtonAddClick(
       Sender      : TObject;
@@ -65,22 +81,29 @@ type
     procedure FormShortCut(var Msg: TWMKey; var Handled: Boolean);
 
   private
-    FMessageViewer   : ILogViewer;
-    FManager         : TdmManager;
-    FSettings        : TLogViewerSettings;
-    FMainToolbar     : TToolBar;
-    FComPortSettings : TComPortSettings;
-    FDashboard       : TfrmDashboard;
+    FManager     : ILogViewerManager;
+    FSettings    : TLogViewerSettings;
+    FMainToolbar : TToolBar;
+    FDashboard   : TfrmDashboard;
 
     procedure SettingsChanged(Sender: TObject);
 
-    procedure ProcessDroppedTab(
-      Sender             : TObject;
-      X, Y               : Integer;
-      DragTabObject      : IDragTabObject;
-      Cancelled          : Boolean;
-      var TabDropOptions : TTabDropOptions
+    procedure EventsAddLogViewer(
+      Sender     : TObject;
+      ALogViewer : ILogViewer
     );
+    procedure EventsActiveViewChange(
+      Sender     : TObject;
+      ALogViewer : ILogViewer
+    );
+
+//    procedure ProcessDroppedTab(
+//      Sender             : TObject;
+//      X, Y               : Integer;
+//      DragTabObject      : IDragTabObject;
+//      Cancelled          : Boolean;
+//      var TabDropOptions : TTabDropOptions
+//    );
 
   protected
     {$REGION 'property access methods'}
@@ -90,15 +113,11 @@ type
     function GetManager: ILogViewerManager;
     {$ENDREGION}
 
-    procedure EventsAddLogViewer(
-      Sender     : TObject;
-      ALogViewer : ILogViewer
-    );
-
     procedure CreateDashboardView;
 
     procedure UpdateTabs;
     procedure UpdateStatusBar;
+    procedure UpdateActions; override;
 
   public
     procedure AfterConstruction; override;
@@ -126,36 +145,101 @@ var
 implementation
 
 uses
-  Spring;
+  Spring.Utils,
+
+  DDuce.ObjectInspector.zObjectInspector, DDuce.Logger;
 
 {$R *.dfm}
 
+{$REGION 'non-interfaced routines'}
+procedure EnsureZMQLibExists;
+const
+  LIBZMQ = 'libzmq';
+var
+  LResStream  : TResourceStream;
+  LFileStream : TFileStream;
+  LPath       : string;
+begin
+  LPath := Format('%s\%s.dll', [ExtractFileDir(ParamStr(0)), LIBZMQ]);
+  if not FileExists(LPath) then
+  begin
+    LResStream := TResourceStream.Create(HInstance, LIBZMQ, RT_RCDATA);
+    try
+      LFileStream := TFileStream.Create(LPath, fmCreate);
+      try
+        LFileStream.CopyFrom(LResStream, 0);
+      finally
+        LFileStream.Free;
+      end;
+    finally
+      LResStream.Free;
+    end;
+  end;
+end;
+{$ENDREGION}
+
 {$REGION 'construction and destruction'}
 procedure TfrmMain.AfterConstruction;
+var
+  FVI : TFileVersionInfo;
 begin
   inherited AfterConstruction;
+  FVI := TFileVersionInfo.GetVersionInfo(Application.ExeName);
+  Caption := Format('%s %s', [FVI.ProductName, FVI.ProductVersion]);
   FSettings := TLogViewerFactories.CreateSettings;
-  FSettings.Load;
+  try
+    FSettings.Load;
+  except
+    // ignore it
+  end;
   FManager := TLogViewerFactories.CreateManager(Self, FSettings);
   Events.OnAddLogViewer.Add(EventsAddLogViewer);
+  Events.OnActiveViewChange.Add(EventsActiveViewChange);
   FSettings.FormSettings.AssignTo(Self);
   FSettings.OnChanged.Add(SettingsChanged);
   FMainToolbar := TLogViewerFactories.CreateMainToolbar(
-    FManager,
+    FManager.AsComponent,
     Self,
     Actions,
     Menus
   );
+  //FMainToolbar.
+  //TB.CheckMenuDropdown
   CreateDashboardView;
 end;
 
 procedure TfrmMain.BeforeDestruction;
 begin
+  Logger.Track(Self, 'BeforeDestruction');
   FSettings.FormSettings.Assign(Self);
   FSettings.Save;
+  FSettings.OnChanged.Remove(SettingsChanged);
   FSettings.Free;
-  FComPortSettings.Free;
+  Events.OnAddLogViewer.Remove(EventsAddLogViewer);
+  Events.OnActiveViewChange.Remove(EventsActiveViewChange);
   inherited BeforeDestruction;
+end;
+{$ENDREGION}
+
+{$REGION 'action handlers'}
+procedure TfrmMain.actCenterToScreenExecute(Sender: TObject);
+begin
+  WindowState := wsMinimized;
+  Top  := 0;
+  Left := 0;
+  WindowState := wsMaximized;
+end;
+
+procedure TfrmMain.actShowVersionExecute(Sender: TObject);
+const
+  LIBZMQ = 'libzmq';
+var
+  FVI : TFileVersionInfo;
+begin
+  FVI := TFileVersionInfo.GetVersionInfo(Format('%s\%s.dll', [ExtractFileDir(ParamStr(0)), LIBZMQ]));
+  ShowMessage(FVI.ToString);
+
+
 end;
 {$ENDREGION}
 
@@ -195,13 +279,18 @@ begin
 //    LMessageViewer.Form.Caption,
 //    LMessageViewer.Receiver.Name
 //  ]);
-//  Handled := True;
+  Handled := True;
 end;
 
 procedure TfrmMain.ctMainButtonCloseTabClick(Sender: TObject; ATab: TChromeTab;
   var Close: Boolean);
 begin
-  Close := False;
+  Close := ATab.DisplayName <> 'Dashboard';
+  if Close then
+  begin
+    Manager.Views.Delete(Manager.Views.IndexOf(ILogViewer(ATab.Data)));
+    UpdateTabs;
+  end;
 end;
 
 procedure TfrmMain.ctMainNeedDragImageControl(Sender: TObject; ATab: TChromeTab;
@@ -218,14 +307,38 @@ begin
   //ProcessDroppedTab(Sender, X, Y, DragTabObject, Cancelled, TabDropOptions);
 end;
 
+procedure TfrmMain.EventsActiveViewChange(Sender: TObject;
+  ALogViewer: ILogViewer);
+var
+  CT : TChromeTab;
+  I  : Integer;
+begin
+  for I := 0 to ctMain.Tabs.Count - 1 do
+  begin
+    CT := ctMain.Tabs[I];
+    if CT.Data = Pointer(ALogViewer) then
+      ctMain.ActiveTab := CT;
+  end;
+  ALogViewer.Form.Show;
+end;
+
 procedure TfrmMain.EventsAddLogViewer(Sender: TObject;
   ALogViewer: ILogViewer);
+var
+  S : string;
 begin
-  ALogViewer.Receiver.Enabled := True;
+  ALogViewer.Subscriber.Enabled := True;
   ALogViewer.Form.Parent := pnlMainClient;
+  S := ExtractFileName(ALogViewer.Subscriber.SourceName);
   ctMain.Tabs.Add;
   ctMain.ActiveTab.Data := Pointer(ALogViewer);
-  ctMain.ActiveTab.Caption := ALogViewer.Receiver.ToString;
+  ctMain.ActiveTab.Caption :=
+    Format('%s (%d %s)', [
+      ALogViewer.Subscriber.Receiver.ToString,
+      ALogViewer.Subscriber.SourceId,
+      S
+    ]);
+
   ALogViewer.Form.Show;
 end;
 
@@ -239,7 +352,6 @@ procedure TfrmMain.FormShortCut(var Msg: TWMKey; var Handled: Boolean);
 begin
   Handled := Manager.Actions.ActionList.IsShortCut(Msg);
 end;
-
 {$ENDREGION}
 
 {$REGION 'property access methods'}
@@ -282,70 +394,89 @@ end;
 
 { Handles the drop operation of a dragged tab. }
 
-procedure TfrmMain.ProcessDroppedTab(Sender: TObject; X, Y: Integer;
-  DragTabObject: IDragTabObject; Cancelled: Boolean;
-  var TabDropOptions: TTabDropOptions);
-var
-  WinX, WinY: Integer;
-  NewForm   : TForm;
+//procedure TfrmMain.ProcessDroppedTab(Sender: TObject; X, Y: Integer;
+//  DragTabObject: IDragTabObject; Cancelled: Boolean;
+//  var TabDropOptions: TTabDropOptions);
+//var
+//  WinX, WinY: Integer;
+//  NewForm   : TForm;
+//begin
+//  // Make sure that the drag drop hasn't been cancelled and that
+//  // we are not dropping on a TChromeTab control
+//  if (not Cancelled) and
+//    (DragTabObject.SourceControl <> DragTabObject.DockControl) and
+//    (DragTabObject.DockControl = nil) then
+//  begin
+//    // Find the drop position
+//    WinX := Mouse.CursorPos.X - DragTabObject.DragCursorOffset.X -
+//      ((Width - ClientWidth) div 2);
+//    WinY := Mouse.CursorPos.Y - DragTabObject.DragCursorOffset.Y -
+//      (Height - ClientHeight) + ((Width - ClientWidth) div 2);
+//
+//    // Create a new form
+//    NewForm := TForm.Create(Application);
+//
+//    // Set the new form position
+//    NewForm.Position := poDesigned;
+//    NewForm.Left     := WinX;
+//    NewForm.Top      := WinY;
+//
+//    // Show the form
+//    NewForm.Show;
+//
+//    // Remove the original tab
+//    TabDropOptions := [tdDeleteDraggedTab];
+//  end;
+//end;
+
+procedure TfrmMain.UpdateActions;
 begin
-  // Make sure that the drag drop hasn't been cancelled and that
-  // we are not dropping on a TChromeTab control
-  if (not Cancelled) and
-    (DragTabObject.SourceControl <> DragTabObject.DockControl) and
-    (DragTabObject.DockControl = nil) then
-  begin
-    // Find the drop position
-    WinX := Mouse.CursorPos.X - DragTabObject.DragCursorOffset.X -
-      ((Width - ClientWidth) div 2);
-    WinY := Mouse.CursorPos.Y - DragTabObject.DragCursorOffset.Y -
-      (Height - ClientHeight) + ((Width - ClientWidth) div 2);
-
-    // Create a new form
-    NewForm := TForm.Create(Application);
-
-    // Set the new form position
-    NewForm.Position := poDesigned;
-    NewForm.Left     := WinX;
-    NewForm.Top      := WinY;
-
-    // Show the form
-    NewForm.Show;
-
-    // Remove the original tab
-    TabDropOptions := [tdDeleteDraggedTab];
-  end;
+  inherited UpdateActions;
+  UpdateStatusBar;
+  //UpdateTabs;
 end;
 
 procedure TfrmMain.UpdateStatusBar;
 begin
-//
+  if Assigned(Manager) and Assigned(Manager.ActiveView) then
+    sbrMain.SimpleText := Manager.ActiveView.Subscriber.SourceName
+  else
+    sbrMain.SimpleText := '';
 end;
+
+{ not in use yet }
 
 procedure TfrmMain.UpdateTabs;
 var
   MV : ILogViewer;
   CT : TChromeTab;
 begin
-  if Manager.Views.Count = 1 then
-  begin
-    ctMain.Visible := False;
-//    if Assigned(Editor) then
-//      Editor.Visible := True;
-  end
-  else
-  begin
-    ctMain.BeginUpdate;
+  Logger.Track('TfrmMain.UpdateTabs');
+  ctMain.BeginUpdate;
+  try
     ctMain.Tabs.Clear;
-    for MV in Manager.Views do
+    ctMain.Tabs.Add;
+    ctMain.ActiveTab.Data        := Pointer(FDashboard);
+    ctMain.ActiveTab.Caption     := 'Dashboard';
+    ctMain.ActiveTab.DisplayName := 'Dashboard';
+    ctMain.ActiveTab.Pinned      := True;
+
+    if Manager.Views.Count > 0 then
     begin
-      CT := ctMain.Tabs.Add;
-      CT.Data := Pointer(MV);
+      for MV in Manager.Views do
+      begin
+        CT := ctMain.Tabs.Add;
+        CT.Data := Pointer(MV);
+      end;
+      ctMain.Visible := True;
     end;
-    ctMain.Visible := True;
+  finally
     ctMain.EndUpdate;
   end;
 end;
 {$ENDREGION}
+
+initialization
+  EnsureZMQLibExists;
 
 end.

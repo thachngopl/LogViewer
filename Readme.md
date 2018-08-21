@@ -5,7 +5,7 @@ messages from.
 
 * Windows IPC (using WM_COPY messages)
 * Windows OutputDebugString API
-* ZeroMQ (PUB/SUB socket)
+* [ZeroMQ](https://github.com/zeromq/libzmq) (PUB/SUB socket)
 * Serial port
 * Spring4D logging API
 
@@ -18,12 +18,25 @@ A logviewer consists of
 - method callstack level display
 - message details
 
+Features currently supported:
+- Info/Warning and Error messages
+- Method tracking
+- Screenshot capture
+- Conditional logging
+- Checkpoints
+- Counters
+- Watches
+
 The sources depend on the following libraries and components:
   * [Spring4D](http://bitbucket.org/sglienke/spring4d)
   * [DSharp](http://bitbucket.org/sglienke/dsharp)
   * [Virtual treeview](http://github.com/Virtual-TreeView/Virtual-TreeView)
   * [DDuce](http://github.com/beNative/dduce)
-  * [ZeroMQ](http://github.com/zedalaye/Delphi-ZeroMQ)
+  * [ZeroMQ](http://github.com/beNative/Delphi-ZeroMQ)
+  * [zcontrols](http://github.com/beNative/zcontrols)
+  * [TBCEditor](https://github.com/beNative/TBCEditor)
+  * [TChromeTabs](https://github.com/norgepaul/TChromeTabs)
+  * [Ararat Synapse](https://sourceforge.net/projects/synalist/)
 
 Here a preliminary look of the application:
 

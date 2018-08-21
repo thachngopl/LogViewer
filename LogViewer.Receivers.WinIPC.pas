@@ -16,18 +16,19 @@
 
 unit LogViewer.Receivers.WinIPC;
 
+{ WinIPC channel receiver. }
+
 interface
 
-{ Receives logmessages through WinIPC (WM_COPYDATA) messages. }
+{$REGION 'documentation'}
+{ Receives logmessages through WinIPC (WM_COPYDATA) messages.
 
-
-{ TODO :
-  Need to handle multiple queues which can be connected to a message viewer
-
-  A channel receiver maintains a list of listeners which are associated with
-  the processId of the originating process.
-
+  The communication with the message source is synchronous, so when the source
+  application sends a message, it blocks until it is received by the receiver.
 }
+
+{ TODO :  Notification when a ProcessId/ProcessName does not exist anymore }
+{$ENDREGION}
 
 uses
   System.Classes,
@@ -37,25 +38,17 @@ uses
 
   DDuce.WinIPC.Server,
 
-  LogViewer.Interfaces;
+  LogViewer.Receivers.Base, LogViewer.Interfaces, LogViewer.WinIPC.Settings;
 
 type
-  TWinIPChannelReceiver = class(TInterfacedObject, IChannelReceiver)
-  private class var
-     FCounter : Integer; // used for creating a unique server name
+  TWinIPCChannelReceiver = class(TChannelReceiver, IChannelReceiver)
   private
-     FEnabled          : Boolean;
-     FIPCServer        : TWinIPCServer;
-     FOnReceiveMessage : Event<TReceiveMessageEvent>;
-     FName             : string;
+     FIPCServer : TWinIPCServer;
 
   protected
     {$REGION 'property access methods'}
-    function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
-    function GetName: string;
-    procedure SetName(const Value: string);
-    function GetEnabled: Boolean;
-    procedure SetEnabled(const Value: Boolean);
+    function GetSettings: TWinIPCSettings;
+    procedure SetEnabled(const Value: Boolean); override;
     {$ENDREGION}
 
     procedure FIPCServerMessage(
@@ -64,23 +57,20 @@ type
       AData     : TStream
     );
 
-    procedure DoReceiveMessage(AStream : TStream);
+    function CreateSubscriber(
+      ASourceId         : Integer;
+      AThreadId         : Integer;
+      const ASourceName : string
+    ): ISubscriber; override;
+
+    procedure SettingsChanged(Sender: TObject); override;
 
   public
-    constructor Create(const AName: string); reintroduce;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
 
-    function ToString: string; override;
-
-    property Enabled: Boolean
-      read GetEnabled write SetEnabled;
-
-    property Name: string
-      read GetName write SetName;
-
-    property OnReceiveMessage: IEvent<TReceiveMessageEvent>
-      read GetOnReceiveMessage;
+    property Settings: TWinIPCSettings
+      read GetSettings;
 
   end;
 
@@ -89,93 +79,61 @@ implementation
 uses
   System.SysUtils,
 
-  DDuce.Utils;
+  DDuce.Utils, DDuce.Utils.Winapi,
+
+  LogViewer.Subscribers.WinIPC;
 
 {$REGION 'construction and destruction'}
-constructor TWinIPChannelReceiver.Create(const AName: string);
-begin
-  inherited Create;  
-  if AName = '' then
-  begin
-    FName := Copy(ClassName, 2, Length(ClassName)) + IntToStr(FCounter);
-  end
-  else
-    FName := AName;
-end;
-
-procedure TWinIPChannelReceiver.AfterConstruction;
+procedure TWinIPCChannelReceiver.AfterConstruction;
 begin
   inherited AfterConstruction;
-  Inc(FCounter);
-  FOnReceiveMessage.UseFreeNotification := False;
   FIPCServer           := TWinIPCServer.Create;
   FIPCServer.OnMessage := FIPCServerMessage;
   FIPCServer.Active    := True;
+  Settings.OnChanged.Add(SettingsChanged);
 end;
 
-procedure TWinIPChannelReceiver.BeforeDestruction;
+procedure TWinIPCChannelReceiver.BeforeDestruction;
 begin
   FIPCServer.Active := False;
   FIPCServer.Free;
   inherited BeforeDestruction;
 end;
+
+function TWinIPCChannelReceiver.CreateSubscriber(ASourceId, AThreadId: Integer;
+  const ASourceName: string): ISubscriber;
+begin
+  Result := TWinIPCSubscriber.Create(Self, ASourceId, '', ASourceName, True);
+end;
 {$ENDREGION}
 
 {$REGION 'property access methods'}
-function TWinIPChannelReceiver.GetEnabled: Boolean;
+procedure TWinIPCChannelReceiver.SetEnabled(const Value: Boolean);
 begin
-  Result := FEnabled;
+  inherited SetEnabled(Value);
+  if Value then
+    FIPCServer.OnMessage := FIPCServerMessage
+  else
+    FIPCServer.OnMessage := nil;
+  FIPCServer.Active := Value;
 end;
 
-function TWinIPChannelReceiver.GetName: string;
+function TWinIPCChannelReceiver.GetSettings: TWinIPCSettings;
 begin
-  Result := FName;
-end;
-
-procedure TWinIPChannelReceiver.SetName(const Value: string);
-begin
-  FName := Value;
-end;
-
-procedure TWinIPChannelReceiver.SetEnabled(const Value: Boolean);
-begin
-  if Value <> Enabled then
-  begin
-    FEnabled := Value;
-    if Value then
-      FIPCServer.OnMessage := FIPCServerMessage
-    else
-      FIPCServer.OnMessage := nil;
-    FIPCServer.Active := Value;
-  end;
-end;
-
-function TWinIPChannelReceiver.GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
-begin
-  Result := FOnReceiveMessage;
-end;
-{$ENDREGION}
-
-{$REGION 'event dispatch methods'}
-procedure TWinIPChannelReceiver.DoReceiveMessage(AStream: TStream);
-begin
-  FOnReceiveMessage.Invoke(Self, Self as IChannelReceiver, AStream);
+  Result := Manager.Settings.WinIPCSettings;
 end;
 {$ENDREGION}
 
 {$REGION 'event handlers'}
-procedure TWinIPChannelReceiver.FIPCServerMessage(Sender: TObject;
+procedure TWinIPCChannelReceiver.FIPCServerMessage(Sender: TObject;
   ASourceId: Integer; AData: TStream);
 begin
-  DoReceiveMessage(AData);
-  OutputDebugString('ClientProcessId = %d', [ASourceId]);
+  DoReceiveMessage(AData, ASourceId, 0, GetExenameForProcess(ASourceId));
 end;
-{$ENDREGION}
 
-{$REGION 'public methods'}
-function TWinIPChannelReceiver.ToString: string;
+procedure TWinIPCChannelReceiver.SettingsChanged(Sender: TObject);
 begin
-  Result := Name;
+  Enabled := Settings.Enabled;
 end;
 {$ENDREGION}
 

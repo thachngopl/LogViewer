@@ -16,6 +16,8 @@
 
 unit LogViewer.WinIPC.Settings;
 
+{ Persistable settings for WinIPC receivers. }
+
 interface
 
 uses
@@ -27,22 +29,55 @@ type
   TWinIPCSettings = class(TPersistent)
   private
     FOnChanged : Event<TNotifyEvent>;
-
-    function GetOnChanged: IEvent<TNotifyEvent>;
+    FEnabled   : Boolean;
 
   protected
+    {$REGION 'property access methods'}
+    function GetOnChanged: IEvent<TNotifyEvent>;
+    function GetEnabled: Boolean;
+    procedure SetEnabled(const Value: Boolean);
+    {$ENDREGION}
+
     procedure Changed;
 
   public
+
     procedure Assign(Source: TPersistent); override;
+    procedure BeforeDestruction; override;
 
     property OnChanged: IEvent<TNotifyEvent>
       read GetOnChanged;
+
+  published
+    property Enabled: Boolean
+      read GetEnabled write SetEnabled;
   end;
 
 implementation
 
+{$REGION 'construction and destruction'}
+procedure TWinIPCSettings.BeforeDestruction;
+begin
+  FOnChanged.Clear;
+  inherited BeforeDestruction;
+end;
+{$ENDREGION}
+
 {$REGION 'property access methods'}
+function TWinIPCSettings.GetEnabled: Boolean;
+begin
+  Result := FEnabled;
+end;
+
+procedure TWinIPCSettings.SetEnabled(const Value: Boolean);
+begin
+  if Value <> Enabled then
+  begin
+    FEnabled := Value;
+    Changed;
+  end;
+end;
+
 function TWinIPCSettings.GetOnChanged: IEvent<TNotifyEvent>;
 begin
   Result := FOnChanged;
@@ -58,17 +93,16 @@ end;
 
 {$REGION 'public methods'}
 procedure TWinIPCSettings.Assign(Source: TPersistent);
-//var
-//  LSettings: TWinIPCSettings;
+var
+  LSettings: TWinIPCSettings;
 begin
-//  if Source is TWinIPCSettings then
-//  begin
-//    LSettings := TWinIPCSettings(Source);
-//
-//
-//  end
-//  else
-//    inherited Assign(Source);
+  if Source is TWinIPCSettings then
+  begin
+    LSettings := TWinIPCSettings(Source);
+    Enabled := LSettings.Enabled;
+  end
+  else
+    inherited Assign(Source);
 end;
 {$ENDREGION}
 end.

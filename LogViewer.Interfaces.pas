@@ -16,7 +16,7 @@
 
 unit LogViewer.Interfaces;
 
-{ Interfaces used by application. }
+{ Main application Interfaces. }
 
 interface
 
@@ -26,6 +26,8 @@ uses
 
   Spring, Spring.Collections,
 
+  DDuce.Editor.Interfaces, DDuce.DynamicRecord,
+
   LogViewer.Settings, LogViewer.ComPort.Settings;
 
 type
@@ -34,7 +36,6 @@ type
 
   TReceiveMessageEvent = procedure(
     Sender    : TObject;
-    AReceiver : IChannelReceiver;
     AStream   : TStream
   ) of object;
 
@@ -56,17 +57,61 @@ type
       read GetSettings;
   end;
 
+  ISubscriber = interface
+  ['{49CFDB5B-6A74-4352-9877-EF6E73776938}']
+    {$REGION 'property access methods'}
+    function GetEnabled: Boolean;
+    procedure SetEnabled(const Value: Boolean);
+    function GetKey: string;
+    function GetReceiver: IChannelReceiver;
+    function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
+    function GetSourceId: Integer;
+    function GetSourceName: string;
+    function GetMessageCount: Int64;
+    {$ENDREGION}
+    procedure Poll;
+    procedure DoReceiveMessage(AStream : TStream);
+
+    property Key: string
+      read GetKey;
+
+    property Enabled: Boolean
+      read GetEnabled write SetEnabled;
+
+    property OnReceiveMessage: IEvent<TReceiveMessageEvent>
+      read GetOnReceiveMessage;
+
+    property MessageCount: Int64
+      read GetMessageCount;
+
+    property Receiver: IChannelReceiver
+      read GetReceiver;
+
+    property SourceId: Integer
+      read GetSourceId;
+
+    property SourceName: string
+      read GetSourceName;
+  end;
+
   IChannelReceiver = interface
   ['{7C96D7BD-3D10-4A9A-90AF-43E755859B37}']
     {$REGION 'property access methods'}
     function GetEnabled: Boolean;
     procedure SetEnabled(const Value: Boolean);
-    function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
     function GetName: string;
     procedure SetName(const Value: string);
+    function GetSubscriberList: IDictionary<Integer, ISubscriber>;
     {$ENDREGION}
 
     function ToString: string;
+
+    procedure DoReceiveMessage(
+      AStream           : TStream;
+      ASourceId         : Integer = 0;
+      AThreadId         : Integer = 0;
+      const ASourceName : string = ''
+    );
 
     property Name: string
       read GetName write SetName;
@@ -74,8 +119,8 @@ type
     property Enabled: Boolean
       read GetEnabled write SetEnabled;
 
-    property OnReceiveMessage: IEvent<TReceiveMessageEvent>
-      read GetOnReceiveMessage;
+    property SubscriberList: IDictionary<Integer, ISubscriber>
+      read GetSubscriberList;
   end;
 
   ILogViewerActions = interface
@@ -95,7 +140,7 @@ type
   end;
 
   ILogViewerMenus = interface
-  ['{B3F8FAFC-00FB-4233-890A-BBBC356B186E}']
+  ['{807937AA-BA66-4302-BE92-D93E25865C97}']
     {$REGION 'property access methods'}
     function GetLogTreeViewerPopupMenu: TPopupMenu;
     function GetMessageTypesPopupMenu: TPopupMenu;
@@ -111,8 +156,9 @@ type
   ILogViewer = interface
   ['{C1DF2E26-4507-4B35-94E1-19A36775633F}']
     {$REGION 'property access methods'}
-    function GetReceiver: IChannelReceiver;
+    function GetSubscriber: ISubscriber;
     function GetForm: TCustomForm;
+    function GetIsActiveView: Boolean;
     {$ENDREGION}
 
     procedure Clear;
@@ -122,8 +168,11 @@ type
     procedure CollapseAll;
     procedure ExpandAll;
 
-    property Receiver: IChannelReceiver
-      read GetReceiver;
+    property IsActiveView: Boolean
+      read GetIsActiveView;
+
+    property Subscriber: ISubscriber
+      read GetSubscriber;
 
    property Form: TCustomForm
       read GetForm;
@@ -134,10 +183,15 @@ type
     {$REGION 'property access methods'}
     function GetOnAddLogViewer: IEvent<TLogViewerEvent>;
     function GetOnAddReceiver: IEvent<TChannelReceiverEvent>;
+    function GetOnActiveViewChange: IEvent<TLogViewerEvent>;
     {$ENDREGION}
 
+    procedure DoActiveViewChange(ALogViewer: ILogViewer);
     procedure DoAddLogViewer(ALogViewer: ILogViewer);
     procedure DoAddReceiver(AReceiver: IChannelReceiver);
+
+    property OnActiveViewChange: IEvent<TLogViewerEvent>
+      read GetOnActiveViewChange;
 
     property OnAddReceiver: IEvent<TChannelReceiverEvent>
       read GetOnAddReceiver;
@@ -149,6 +203,7 @@ type
   ILogViewerCommands = interface
   ['{70304CE3-9498-4738-9084-175B44104236}']
     procedure ClearMessages;
+    procedure UpdateView;
     procedure Start;
     procedure Stop;
     procedure CollapseAll;
@@ -169,10 +224,13 @@ type
     function GetReceivers: IList<IChannelReceiver>;
     function GetCommands: ILogViewerCommands;
     function GetEvents: ILogViewerEvents;
+    function GetEditorManager: IEditorManager;
     {$ENDREGION}
 
     procedure AddView(ALogViewer: ILogViewer);
     procedure AddReceiver(AReceiver: IChannelReceiver);
+
+    function AsComponent: TComponent;
 
     property ActiveView: ILogViewer
       read GetActiveView write SetActiveView;
@@ -197,6 +255,9 @@ type
 
     property Receivers: IList<IChannelReceiver>
       read GetReceivers;
+
+    property EditorManager: IEditorManager
+      read GetEditorManager;
   end;
 
   ILogViewerToolbarsFactory = interface

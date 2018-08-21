@@ -16,11 +16,17 @@
 
 unit LogViewer.Receivers.WinODS;
 
+{ WinODS channel receiver. }
+
+interface
+
+{$REGION 'documentation'}
 { Receives messages posted by the OutputDebugString Windows API routine. The
   OutputDebugString messages are fetched in a thread and queued as TLogMessage
   compatible stream. }
 
-interface
+{ TODO :  Notification when a ProcessId/ProcessName does not exist anymore }
+{$ENDREGION}
 
 uses
   Winapi.Windows, Winapi.Messages,
@@ -28,7 +34,9 @@ uses
 
   LogViewer.Interfaces,
 
-  Spring, Spring.Collections;
+  Spring, Spring.Collections,
+
+  LogViewer.Receivers.Base, LogViewer.WinODS.Settings;
 
 type
   TODSMessage = class
@@ -43,6 +51,7 @@ type
 
   TODSThread = class(TThread)
   private
+    FLastChildOrder   : UInt32;
     FODSQueue         : IQueue<TODSMessage>;
     FCloseEventHandle : THandle;
 
@@ -54,25 +63,11 @@ type
   end;
 
 type
-  TWinODSChannelReceiver = class(TInterfacedObject, IChannelReceiver)
-  private class var
-    FCounter : Integer;
+  TWinODSChannelReceiver = class(TChannelReceiver, IChannelReceiver)
   private
-    FEnabled          : Boolean;
     FBuffer           : TMemoryStream;
     FODSQueue         : IQueue<TODSMessage>;
-    FODSThread        : TODSThread;
-    FOnReceiveMessage : Event<TReceiveMessageEvent>;
-    FName             : string;
-
-  protected
-    {$REGION 'property access methods'}
-    function GetName: string;
-    procedure SetName(const Value: string);
-    function GetEnabled: Boolean;
-    procedure SetEnabled(const Value: Boolean);
-    function GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
-    {$ENDREGION}
+    //FODSThread        : TODSThread;
 
     procedure FODSQueueChanged(
       Sender     : TObject;
@@ -80,21 +75,18 @@ type
       Action     : TCollectionChangedAction
     );
 
+  protected
+    function GetSettings: TWinODSSettings;
+
+    procedure SettingsChanged(Sender: TObject); override;
+
   public
-    constructor Create(const AName: string); reintroduce;
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
 
-    function ToString: string; override;
+    property Settings: TWinODSSettings
+      read GetSettings;
 
-    property Enabled: Boolean
-      read GetEnabled write SetEnabled;
-
-    property Name: string
-      read GetName write SetName;
-
-    property OnReceiveMessage: IEvent<TReceiveMessageEvent>
-      read GetOnReceiveMessage;
   end;
 
 implementation
@@ -106,46 +98,44 @@ uses
 
   Spring.Helpers,
 
-  DDuce.Utils.WinApi;
+  DDuce.Logger.Interfaces, DDuce.Utils.WinApi,
 
-var
-  LastChildOrder : UInt32;
+  LogViewer.WinIPC.Settings;
 
 {$REGION 'construction and destruction'}
-constructor TWinODSChannelReceiver.Create(const AName: string);
-begin
-  inherited Create;
-  if AName = '' then
-  begin
-    FName := Copy(ClassName, 2, Length(ClassName)) + IntToStr(FCounter);
-  end
-  else
-    FName := AName;
-end;
-
 procedure TWinODSChannelReceiver.AfterConstruction;
 begin
   inherited AfterConstruction;
-  FOnReceiveMessage.UseFreeNotification := False;
-  Inc(FCounter);
   FBuffer := TMemoryStream.Create;
   FODSQueue := TCollections.CreateQueue<TODSMessage>(True);
   FODSQueue.OnChanged.Add(FODSQueueChanged);
-  FODSThread := TODSThread.Create(FODSQueue);
+  //FODSThread := TODSThread.Create(FODSQueue);
+  Settings.OnChanged.Add(SettingsChanged);
 end;
 
 procedure TWinODSChannelReceiver.BeforeDestruction;
 begin
-  FOnReceiveMessage.Clear;
-  FODSThread.Terminate;
+  //FODSThread.Terminate;
   FBuffer.Free;
   FODSQueue.Clear;
-  FODSThread.Free;
+  //FODSThread.Free;
   inherited BeforeDestruction;
 end;
 {$ENDREGION}
 
+{$REGION 'property access methods'}
+function TWinODSChannelReceiver.GetSettings: TWinODSSettings;
+begin
+  Result := Manager.Settings.WinODSSettings;
+end;
+{$ENDREGION}
+
 {$REGION 'event handlers'}
+procedure TWinODSChannelReceiver.SettingsChanged(Sender: TObject);
+begin
+  Enabled := Settings.Enabled;
+end;
+
 procedure TWinODSChannelReceiver.FODSQueueChanged(Sender: TObject;
   const Item: TODSMessage; Action: TCollectionChangedAction);
 const
@@ -153,73 +143,27 @@ const
 var
   LTextSize : Integer;
   LMsgType  : Integer;
-  LDataSize : Integer;
+//  LDataSize : Integer;
 begin
-  if Action = caAdded then
+  if Enabled and (Action = caAdded) then
   begin
-    if OnReceiveMessage.CanInvoke then
-    begin
-      FBuffer.Clear;
-      LTextSize := Length(Item.MsgText);
-
-
-      //lmtValue
-      //LMsgType := 0;
-      LMsgType := 3;
-      FBuffer.Seek(0, soFromBeginning);
-      FBuffer.WriteBuffer(LMsgType);
-      FBuffer.WriteBuffer(Item.TimeStamp);
-      FBuffer.WriteBuffer(LTextSize);
-      FBuffer.WriteBuffer(Item.MsgText[1], LTextSize);
-
+    FBuffer.Clear;
+    LMsgType := Integer(lmtText);
+    LTextSize := Length(Item.MsgText);
+    FBuffer.Seek(0, soFromBeginning);
+    FBuffer.WriteBuffer(LMsgType);
+    FBuffer.WriteBuffer(Item.TimeStamp);
+    FBuffer.WriteBuffer(LTextSize);
+    FBuffer.WriteBuffer(Item.MsgText[1], LTextSize);
 //      LDataSize := SizeOf(Item.ProcessInfo);
 //      FBuffer.WriteBuffer(LDataSize, SizeOf(Integer));
 //      FBuffer.WriteBuffer(Item.ProcessInfo, LDataSize);
-
-      FBuffer.WriteBuffer(ZERO_BUF);
+    FBuffer.WriteBuffer(ZERO_BUF);
 //      LTextSize := Length(Item.ProcessName);
 //      FBuffer.WriteBuffer(Item.ProcessName[1], LTextSize);
       //ShowMessage(Item.ProcessInfo.ProcessName);
-      OnReceiveMessage.Invoke(Self, Self as IChannelReceiver, FBuffer);
-    end
+    DoReceiveMessage(FBuffer, Item.ProcessId, 0, string(Item.ProcessName));
   end;
-end;
-{$ENDREGION}
-
-{$REGION 'property access methods'}
-function TWinODSChannelReceiver.GetEnabled: Boolean;
-begin
-  Result := FEnabled;
-end;
-
-function TWinODSChannelReceiver.GetName: string;
-begin
-  Result := FName;
-end;
-
-procedure TWinODSChannelReceiver.SetName(const Value: string);
-begin
-  FName := Value;
-end;
-
-procedure TWinODSChannelReceiver.SetEnabled(const Value: Boolean);
-begin
-  if Value <> Enabled then
-  begin
-    FEnabled := Value;
-  end;
-end;
-
-function TWinODSChannelReceiver.GetOnReceiveMessage: IEvent<TReceiveMessageEvent>;
-begin
-  Result := FOnReceiveMessage;
-end;
-{$ENDREGION}
-
-{$REGION 'public methods'}
-function TWinODSChannelReceiver.ToString: string;
-begin
-  Result := Name;
 end;
 {$ENDREGION}
 
@@ -242,7 +186,7 @@ var
   LSharedMem        : Pointer;
   LReturnCode       : DWORD;
   LODSMessage       : TODSMessage;
-  LHandlesToWaitFor : array [0 .. 1] of THandle;
+  LHandlesToWaitFor : array [0..1] of THandle;
   SA                : SECURITY_ATTRIBUTES;
   SD                : SECURITY_DESCRIPTOR;
 begin
@@ -288,39 +232,39 @@ begin
     LReturnCode := WaitForMultipleObjects(
       2,
       @LHandlesToWaitFor,
-      False { bWaitAll } ,
+      False { bWaitAll },
       3000 { INFINITE }
     );
 
     case LReturnCode of
-      WAIT_TIMEOUT :
+      WAIT_TIMEOUT:
         Continue;
+      WAIT_OBJECT_0:
+        Break;
+      WAIT_OBJECT_0 + 1:
+      begin
+        LODSMessage             := TODSMessage.Create;
+        LODSMessage.TimeStamp   := Now;
+        LODSMessage.ProcessId   := LPDWORD(LSharedMem)^;
+        //'$' + inttohex (pThisPid^,2)
+//        LODSMessage.ProcessName :=
+//          UTF8String(GetExenameForProcess(LODSMessage.ProcessId));
+        // The native version of OutputDebugString is ASCII. result is always
+        // AnsiString
+        LODSMessage.MsgText :=
+          AnsiString(PAnsiChar(LSharedMem) + SizeOf(DWORD));
 
-      WAIT_OBJECT_0 :
+        LODSMessage.Id := FLastChildOrder;
+        Inc(FLastChildOrder);
+        if Trim(string(LODSMessage.MsgText)) <> '' then
         begin
-          Break;
-        end;
-      WAIT_OBJECT_0 + 1 :
-        begin
-          LODSMessage             := TODSMessage.Create;
-          LODSMessage.TimeStamp   := Now;
-          LODSMessage.ProcessId   := LPDWORD(LSharedMem)^;
-          //'$' + inttohex (pThisPid^,2)
-          LODSMessage.ProcessName :=
-            UTF8String(GetExenameForProcess(LODSMessage.ProcessId));
-          // The native version of OutputDebugString is ASCII. result is always
-          // AnsiString
-          LODSMessage.MsgText :=
-            AnsiString(PAnsiChar(LSharedMem) + SizeOf(DWORD));
-
-          LODSMessage.Id := LastChildOrder;
-          Inc(LastChildOrder);
           Queue(procedure
             begin
               FODSQueue.Enqueue(LODSMessage);
             end
           );
         end;
+      end;
       WAIT_FAILED:
         Continue;
     end;

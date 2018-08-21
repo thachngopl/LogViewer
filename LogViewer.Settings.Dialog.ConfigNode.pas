@@ -16,14 +16,19 @@
 
 unit LogViewer.Settings.Dialog.ConfigNode;
 
+{ Node datastructure used in the settings dialog. }
+
 interface
 
+{$REGION 'documentation'}
 {
   See this topic for more information:
   https://stackoverflow.com/questions/5365365/tree-like-datastructure-for-use-with-virtualtreeview
 }
+{$ENDREGION}
 
 uses
+  Vcl.ComCtrls,
   Spring, Spring.Collections,
 
   VirtualTrees;
@@ -31,19 +36,25 @@ uses
 type
   TConfigNode = class
   private
-    FText   : string;
-    FVTNode : PVirtualNode;
-    FNodes  : Lazy<IList<TConfigNode>>;
+    FText      : string;
+    FVTNode    : PVirtualNode;
+    FNodes     : Lazy<IList<TConfigNode>>;
+    FTabSheet  : TTabSheet;
 
   protected
+    {$REGION 'property access methods'}
     function GetNodes: IList<TConfigNode>;
     function GetText: string;
     procedure SetText(const Value: string);
     function GetVTNode: PVirtualNode;
     procedure SetVTNode(const Value: PVirtualNode);
+    {$ENDREGION}
 
   public
-    constructor Create(const AText: string = '');
+    constructor Create(
+      const AText : string = '';
+      ATabSheet   : TTabSheet = nil
+    );
 
     procedure AfterConstruction; override;
     procedure BeforeDestruction; override;
@@ -53,6 +64,9 @@ type
 
     property Text: string
       read GetText write SetText;
+
+    property TabSheet: TTabSheet
+      read FTabSheet write FTabSheet;
 
     property VTNode : PVirtualNode
       read GetVTNode write SetVTNode;
@@ -76,13 +90,15 @@ end;
 procedure TConfigNode.BeforeDestruction;
 begin
   FNodes := nil;
+  FTabSheet := nil;
   inherited BeforeDestruction;
 end;
 
-constructor TConfigNode.Create(const AText: string);
+constructor TConfigNode.Create(const AText: string; ATabSheet: TTabSheet);
 begin
   inherited Create;
-  FText := AText;
+  FText     := AText;
+  FTabSheet := ATabSheet;
 end;
 {$ENDREGION}
 

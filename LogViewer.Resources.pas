@@ -16,6 +16,8 @@
 
 unit LogViewer.Resources;
 
+{ Application constants and resource strings. }
+
 interface
 
 uses
@@ -68,12 +70,23 @@ var
   ];
 
 resourcestring
-  STitle       = 'Title';
   SName        = 'Name';
   SType        = 'Type';
   SValue       = 'Value';
   STimestamp   = 'Timestamp';
   SProcessName = 'ProcessName';
+  SColor       = 'Color';
+  SBitmap      = 'Bitmap';
+  SComponent   = 'Component';
+  SObject      = 'Object';
+  SPersistent  = 'Persistent';
+  SInterface   = 'Interface';
+  SStrings     = 'Strings';
+  SCheckpoint  = 'Checkpoint';
+  SDataSet     = 'DataSet';
+  SScreenShot  = 'ScreenShot';
+  SText        = 'Text';
+  SAction      = 'Action';
 
 const
   ALL_MESSAGES = [
@@ -81,6 +94,8 @@ const
     lmtError,
     lmtWarning,
     lmtValue,
+    lmtAlphaColor,
+    lmtColor,
     lmtEnterMethod,
     lmtLeaveMethod,
     lmtConditional,
@@ -88,6 +103,9 @@ const
     lmtStrings,
     lmtCallStack,
     lmtComponent,
+    lmtObject,
+    lmtInterface,
+    lmtPersistent,
     lmtException,
     lmtBitmap,
     lmtHeapInfo,
@@ -95,22 +113,25 @@ const
     lmtCustomData,
     lmtWatch,
     lmtCounter,
-    lmtText
+    lmtText,
+    lmtScreenShot,
+    lmtDataSet,
+    lmtAction
   ];
 
   // message viewer
 const
   COLUMN_MAIN      = 0;
-  COLUMN_NAME      = 1;
-  COLUMN_TYPE      = 2;
-  COLUMN_VALUE     = 3;
+  COLUMN_VALUENAME = 1;
+  COLUMN_VALUE     = 2;
+  COLUMN_VALUETYPE = 3;
   COLUMN_TIMESTAMP = 4;
 
-  VALUENAME_FONTCOLOR = clBlack;
-  VALUETYPE_FONTCOLOR = clBlue;
-  VALUE_FONTCOLOR     = clNavy;
-  TIMESTAMP_FONTCOLOR = clBlue;
-  ID_FONTCOLOR        = clDkGray;
+  { max. amount of characters allowed to be displayed in the value column of the
+    logtree. }
+  MAX_TEXTLENGTH_VALUECOLUMN = 80;
+
+  LOGVIEWER_ZMQ_PORT : Integer = 42134; // port used for internal debugging
 
 implementation
 

@@ -86,6 +86,7 @@ type
       AFirstId          : Int64;
       AOnlyTrackChanges : Boolean = False
     );
+    procedure BeforeDestruction; override;
 
     function AddValue(
       const AValue : string;
@@ -176,8 +177,19 @@ type
 
 implementation
 
+uses
+  DDuce.Logger;
+
 {$REGION 'TWatch'}
 {$REGION 'construction and destruction'}
+procedure TWatch.BeforeDestruction;
+begin
+  Logger.Track(Self, 'BeforeDestruction');
+//  FList.Clear;
+//  FList := nil;
+  inherited BeforeDestruction;
+end;
+
 constructor TWatch.Create(const AName: string; const AValueType: string;
   AFirstId: Int64; AOnlyTrackChanges: Boolean);
 begin

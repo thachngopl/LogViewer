@@ -16,7 +16,7 @@
 
 unit LogViewer.Commands;
 
-{ Handles execution of user commands on the active view. }
+{ Handles execution of user commands on the active view (called from actions). }
 
 interface
 
@@ -37,6 +37,7 @@ type
 
   protected
     procedure ClearMessages;
+    procedure UpdateView;
     procedure Start;
     procedure Stop;
     procedure CollapseAll;
@@ -57,6 +58,9 @@ type
   end;
 
 implementation
+
+uses
+  DDuce.Logger;
 
 {$REGION 'construction and destruction'}
 constructor TLogViewerCommands.Create(AManager: ILogViewerManager);
@@ -79,7 +83,7 @@ end;
 function TLogViewerCommands.GetReceiver: IChannelReceiver;
 begin
   if Assigned(ActiveView) then
-    Result := ActiveView.Receiver
+    Result := ActiveView.Subscriber.Receiver
   else
     Result := nil;
 end;
@@ -128,17 +132,25 @@ end;
 
 procedure TLogViewerCommands.Start;
 begin
-  if Assigned(Receiver) then
+  if Assigned(ActiveView) and Assigned(ActiveView.Subscriber) then
   begin
-    Receiver.Enabled := True;
+    ActiveView.Subscriber.Enabled := True;
   end;
 end;
 
 procedure TLogViewerCommands.Stop;
 begin
-  if Assigned(Receiver) then
+  if Assigned(ActiveView) and Assigned(ActiveView.Subscriber) then
   begin
-    Receiver.Enabled := False;
+    ActiveView.Subscriber.Enabled := False;
+  end;
+end;
+
+procedure TLogViewerCommands.UpdateView;
+begin
+  if Assigned(ActiveView) then
+  begin
+    ActiveView.UpdateView;
   end;
 end;
 {$ENDREGION}
